@@ -58,8 +58,8 @@ namespace tempss{
 		double Min_drdm;	//min dr/dm
 		double f_thr;		//thrsholf of predator foragingif(
 	public:
-		template<typename prey_reward, typename predator_cost>
-		time_info(const predation& Predation_, const prey_reward& PreyReward, const predator_cost& PredatorCost, double v_, double u_, double base_mu_, double d_)
+		template<typename prey_reward_t, typename predator_cost_t>
+		time_info(const predation& Predation_, const prey_reward_t& PreyReward, const predator_cost_t& PredatorCost, double v_, double u_, double base_mu_, double d_)
 			: Predation(Predation_)
 			, v(v_)
 			, u(u_)
@@ -67,8 +67,8 @@ namespace tempss{
 			, d(d_) {
 			c = PredatorCost(v);
 			r = PreyReward(u);
-			Max_drdm = std::max(0., PreyReward(0) / (prey_mortality(0) + std::numeric_limits<double>::min()));
-			Min_drdm = std::max(0., PreyReward(1) / (prey_mortality(1) + std::numeric_limits<double>::min()));
+			Max_drdm = std::max(0., prey_reward(0) / (prey_mortality(0) + std::numeric_limits<double>::min()));
+			Min_drdm = std::max(0., prey_reward(1) / (prey_mortality(1) + std::numeric_limits<double>::min()));
 			f_thr = find_predation_threshold(Predation_, v, u, c);
 		}
 	public:
@@ -92,7 +92,7 @@ namespace tempss{
 			else if (drdm <= min_drdm()) return 1.0;
 			auto val = boost::math::tools::bisect(
 				[this, drdm](double f) {return prey_reward(f) / (prey_mortality(f) + std::numeric_limits<double>::min()) - drdm; },
-				min_drdm(),max_drdm(),
+				0.0,1.0,
 				boost::math::tools::eps_tolerance<double>(Bits)
 			);
 			return (val.first + val.second) / 2.0;
