@@ -23,7 +23,14 @@ int main(void) {
 
 	this_system System(predation(s, d, h), prey_fitness(alpha), prey_reward(k), predator_cost(c), V.begin(), V.end(), U.begin(), U.end(), mu, rd);
 
-	auto x1 = System.optimize_by_hill_climbing(1000,100000);
+
+	std::cout << "===Info===" << std::endl;
+	for (const auto& val : System) {
+		std::cout << boost::format("%.3f")%val.f_threshold() << std::endl;
+	}
+	std::cout << std::endl;
+
+	auto x1 = System.optimize_by_hill_climbing(100000,10000000,0.4);
 	double W1 = System.get_prey_fitness(x1);
 
 	boost::format F("%.3f\t%.3f\t%.3f\t%.3f\n");

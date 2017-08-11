@@ -22,7 +22,7 @@ namespace hmLib {
 		// 反復時に値が使いまわせるので、fの計算が1回のみでよい
 		// ub: 下限    ub: 上限    K: 反復回数
 		template<typename func, typename state>
-		std::pair<state, state> golden_section_search(func&& Func, state MinVal, state MaxVal, unsigned int Bits) {
+		std::pair<state, state> golden_section_search(func&& Func, state MinVal, state MaxVal, double Error) {
 			constexpr double gratio = 1.6180339887498948482045868343656;
 
 			auto MinEval = Func(MinVal);
@@ -37,7 +37,7 @@ namespace hmLib {
 			state UpperVal = (gratio*LowerVal + MaxVal) / (1 + gratio);
 			auto UpperEval = Func(UpperVal);
 
-			for (unsigned int i = 0; i < Bits; ++i) {
+			while (MaxVal - MinVal > Error) {
 				//Update Min 
 				if (LowerEval < UpperEval) {
 					MinVal = std::move(LowerVal);
@@ -50,7 +50,7 @@ namespace hmLib {
 					UpperEval = Func(UpperVal);
 				}
 				//Update Max
-				else {
+				else{
 					MaxVal = std::move(UpperVal);
 					MaxEval = std::move(UpperEval);
 
@@ -59,6 +59,113 @@ namespace hmLib {
 
 					LowerVal = (MinVal + gratio*UpperVal) / (1 + gratio);
 					LowerEval = Func(LowerVal);
+				}
+			}
+
+			return std::make_pair(MinVal, MaxVal);
+		}
+		//黄金分割法
+		// f(x)が区間[lb,ub]で凸ならば、その極値を返す
+		// 反復時に値が使いまわせるので、fの計算が1回のみでよい
+		// ub: 下限    ub: 上限    K: 反復回数
+		template<typename func, typename state>
+		std::pair<state, state> flat_golden_section_search(func&& Func, state MinVal, state MaxVal, double Error) {
+			constexpr double gratio = 1.6180339887498948482045868343656;
+
+			auto MinEval = Func(MinVal);
+			auto MaxEval = Func(MaxVal);
+
+			//First division: MinSide
+			auto LowerVal = (gratio*MinVal + MaxVal) / (1 + gratio);
+			auto LowerEval = Func(LowerVal);
+			if (LowerEval < MinEval && LowerEval < MaxEval)return std::make_pair(MinVal, MaxVal);
+
+			//Second division: MaxSide
+			state UpperVal = (gratio*LowerVal + MaxVal) / (1 + gratio);
+			auto UpperEval = Func(UpperVal);
+
+			while (MaxVal - MinVal > Error) {
+				//Update Min 
+				if (LowerEval < UpperEval) {
+					MinVal = std::move(LowerVal);
+					MinEval = std::move(LowerEval);
+
+					LowerVal = std::move(UpperVal);
+					LowerEval = std::move(UpperEval);
+
+					UpperVal = (gratio*LowerVal + MaxVal) / (1 + gratio);
+					UpperEval = Func(UpperVal);
+				}
+				//Update Max
+				else if (UpperEval < LowerEval) {
+					MaxVal = std::move(UpperVal);
+					MaxEval = std::move(UpperEval);
+
+					UpperVal = std::move(LowerVal);
+					UpperEval = std::move(LowerEval);
+
+					LowerVal = (MinVal + gratio*UpperVal) / (1 + gratio);
+					LowerEval = Func(LowerVal);
+				}
+				//Same Case
+				else {
+					unsigned int Div = 11;
+
+					unsigned int BestNoLower;
+					unsigned int BestNoUpper;
+
+					while (true) {
+						BestNoLower = 0;
+						BestNoUpper = 0;
+						auto BestEval = MinEval;
+						for (unsigned int i = 1; i < Div - 1; ++i) {
+							state Val = (MinVal*(Div - i) + MaxVal*i) / Div;
+							auto Eval = Func(Val);
+
+							if (BestEval < Eval) {
+								BestNoLower = i;
+								BestNoUpper = i;
+								BestEval = Eval;
+							} else if (BestEval == Eval) {
+								BestNoUpper = i;
+							}
+						}
+						if (BestEval < MaxEval) {
+							BestNoLower = Div;
+							BestNoUpper = Div;
+							BestEval = MaxEval;
+						} else if (BestEval == MaxEval) {
+							BestNoUpper = Div;
+						}
+
+						if (BestNoLower != 0 || BestNoUpper != Div)break;
+
+						if ((MaxVal - MinVal) / Div < Error) {
+							return std::make_pair(MinVal, MaxVal);
+						}
+						Div = (Div - 1) * 10 + 1;
+					}
+					if (BestNoLower > 0)BestNoLower -= 1;
+					if (BestNoUpper < Div)BestNoUpper += 1;
+					auto NewMinVal = (MinVal*(Div - BestNoLower) + MaxVal*BestNoLower) / Div;
+					auto NewMaxVal = (MinVal*(Div - BestNoUpper) + MaxVal*BestNoUpper) / Div;
+
+					if (NewMinVal <= MinVal && NewMaxVal >= MaxVal) {
+						return std::make_pair(MinVal, MaxVal);
+					}
+					MinVal = NewMinVal;
+					MaxVal = NewMaxVal;
+					MinEval = Func(MinVal);
+					MaxEval = Func(MaxVal);
+
+					//First division: MinSide
+					auto LowerVal = (gratio*MinVal + MaxVal) / (1 + gratio);
+					auto LowerEval = Func(LowerVal);
+					if (LowerEval < MinEval && LowerEval < MaxEval)return std::make_pair(MinVal, MaxVal);
+
+					//Second division: MaxSide
+					state UpperVal = (gratio*LowerVal + MaxVal) / (1 + gratio);
+					auto UpperEval = Func(UpperVal);
 				}
 			}
 
@@ -191,7 +298,7 @@ namespace tempss{
 		}
 	public:
 		double predator_strategy(double f)const {
-			return f > f_thr ? 1 : 0;
+			return f > f_thr? 1 : 0;
 		}
 		double predator_payoff(double f)const {
 			return std::max(Predation(f, v, u) - c, 0);
@@ -246,7 +353,7 @@ namespace tempss{
 		};
 
 		//Pair first: threshold value, second: 
-		auto drdmPair = golden_section_search(Func, MinRM, MaxRM, 1e-10);
+		auto drdmPair = hmLib::optimize::flat_golden_section_search(Func, MinRM, MaxRM, 1e-10);
 
 		unsigned int Size = std::distance(InfoBeg, InfoEnd);
 		std::vector<double> Lower(Size, 0.);
@@ -312,88 +419,65 @@ namespace tempss{
 
 		unsigned int ppos = std::numeric_limits<unsigned int>::max();
 		bool Increase = true;
-		while (std::any_of(TimeSet.begin(), TimeSet.end(), [](const detail::time_step& v) {return !v.is_fail(); })) {
-			double R = std::accumulate(TimeSet.begin(), TimeSet.end(), 0., [](double v, const detail::time_step& t) {return v + t.reward(); });
-			double M = std::accumulate(TimeSet.begin(), TimeSet.end(), 0., [](double v, const detail::time_step& t) {return v + t.mortality(); });
-			auto lRM = std::min_element(TimeSet.begin(), TimeSet.end(), [](const detail::time_step& v1, const detail::time_step& v2) {return v1.lower_drdm() < v2.lower_drdm(); });
-			auto uRM = std::max_element(TimeSet.begin(), TimeSet.end(), [](const detail::time_step& v1, const detail::time_step& v2) {return v1.upper_drdm() < v2.upper_drdm(); });
+		double Step = 1.0;
+		while (Step > Error) {
+			for (auto& val:TimeSet)val.clear_fail();
+			Step /= 10.0;
 
-			if (is_prey_fitness_increasing(Fitness, R, M, uRM->upper_drdm())) {
-				auto& t = *uRM;
-				if (t.fraction() <= 0.0) {
-					break;
-				}
-				unsigned int pos = t.pos();
-				double or = t.reward();
-				double om = t.mortality();
-				auto Info = std::next(InfoBeg, pos);
+			unsigned int No = std::numeric_limits<unsigned int>::max();
+			bool Increase = false;
+			while (std::any_of(TimeSet.begin(), TimeSet.end(), [](const detail::time_step& v) {return !v.is_fail(); })) {
+				double R = std::accumulate(TimeSet.begin(), TimeSet.end(), 0., [](double v, const detail::time_step& t) {return v + t.reward(); });
+				double M = std::accumulate(TimeSet.begin(), TimeSet.end(), 0., [](double v, const detail::time_step& t) {return v + t.mortality(); });
+				auto lRM = std::min_element(TimeSet.begin(), TimeSet.end(), [](const detail::time_step& v1, const detail::time_step& v2) {return v1.lower_drdm() < v2.lower_drdm(); });
+				auto uRM = std::max_element(TimeSet.begin(), TimeSet.end(), [](const detail::time_step& v1, const detail::time_step& v2) {return v1.upper_drdm() < v2.upper_drdm(); });
 
-				auto func = [=, &Fitness, &Info](double f){
-					double dr = Info->prey_reward(f);
-					double dm = Info->prey_mortality(f);
-					if(is_prey_fitness_increasing(Fitness, R - or +f*dr, M - om + f*dm, dr/(dm+std::numeric_limits<double>::min())))return 1.0;
-					else return -1.0;
-				};
+				if (is_prey_fitness_increasing(Fitness, R, M, uRM->upper_drdm())) {
+					auto& t = *uRM;
+					if (t.fraction() >= 1.0) {
+						break;
+					}
 
-				//fail to increase minimum step
-				if (func(t.fraction() + Error) < 0) {
-					t.fail();
-					continue;
-				}
+					if (No == t.pos() && !Increase) {
+						t.fail();
+						continue;
+					}
+					No = t.pos();
+					Increase = true;
 
-				if (func(1.0) > 0.0) {
-					t.set(1.0, Info->prey_reward(1.0), Info->prey_mortality(1.0));
-					t.fail();
+					const auto& Info = *std::next(InfoBeg, No);
+					double f = std::min(1.0, t.fraction() + Step);
+					double dr = Info.prey_reward(f);
+					double dm = Info.prey_mortality(f);
+					t.set(f, dr, dm);
 				} else {
-					auto Ans = boost::math::tools::bisect(func, t.fraction(), 1.0, boost::math::tools::eps_tolerance<double>(16));
-					double f = (Ans.first + Ans.second)/2.0;
-					t.set(f, Info->prey_reward(f), Info->prey_mortality(f));
-					t.fail();
-				}
+					auto& t = *lRM;
+					if (t.fraction() <= 0.0) {
+						break;
+					}
 
-				for (auto Itr = TimeSet.begin(); Itr != TimeSet.end(); ++Itr) {
-					if (Itr == uRM)continue;
-					Itr->clear_fail();
-				}
-			} else {
-				auto& t = *lRM;
-				if (t.fraction() <= 0.0) {
-					break;
-				}
-				unsigned int pos = t.pos();
-				double or = t.reward();
-				double om = t.mortality();
-				auto Info = std::next(InfoBeg, pos);
+					if (No == t.pos() && Increase) {
+						const auto& Info = *std::next(InfoBeg, No);
+						double f = std::max(0.0, t.fraction() - Step);
+						double dr = Info.prey_reward(f);
+						double dm = Info.prey_mortality(f);
+						t.set(f, dr, dm);
 
-				auto func = [=, &Fitness, &Info](double f) {
-					double dr = Info->prey_reward(f);
-					double dm = Info->prey_mortality(f);
-					if (is_prey_fitness_increasing(Fitness, R - or +f*dr, M - om + f*dm, dr / (dm + std::numeric_limits<double>::min())))return 1.0;
-					else return -1.0;
-				};
+						t.fail();
+						continue;
+					}
+					No = t.pos();
+					Increase = false;
 
-				//fail to increase minimum step
-				if (func(t.fraction() - Error) > 0) {
-					t.fail();
-					continue;
-				}
-
-				if (func(0.0) < 0.0) {
-					t.set(0.0, Info->prey_reward(0.0), Info->prey_mortality(0.0));
-					t.fail();
-				} else {
-					auto Ans = boost::math::tools::bisect(func, 0.0, t.fraction(),boost::math::tools::eps_tolerance<double>(16));
-					double f = (Ans.first + Ans.second) / 2.0;
-					t.set(f, Info->prey_reward(f), Info->prey_mortality(f));
-					t.fail();
-				}
-
-				for (auto Itr = TimeSet.begin(); Itr != TimeSet.end(); ++Itr) {
-					if (Itr == lRM)continue;
-					Itr->clear_fail();
+					const auto& Info = *std::next(InfoBeg, No);
+					double f = std::max(0.0, t.fraction() - Step);
+					double dr = Info.prey_reward(f);
+					double dm = Info.prey_mortality(f);
+					t.set(f, dr, dm);
 				}
 			}
 		}
+
 
 		state State;
 		for (const auto& v : TimeSet)State.push_back(v.fraction());
@@ -403,16 +487,18 @@ namespace tempss{
 
 	namespace detail {
 		struct mutate {
+			double Sigma;
+			mutate(double Sigma_):Sigma(Sigma_){}
 			template<typename urbg>
 			void operator()(state& x, urbg&& RandEng) {
 				unsigned int pos = std::uniform_int_distribution<unsigned int>(0, x.size()-1)(RandEng);
 
-				x[pos] = std::max(0.,std::min(1.,std::normal_distribution<double>(x[pos], 0.02)(RandEng)));
+				x[pos] = std::max(0.,std::min(1.,std::normal_distribution<double>(x[pos], Sigma)(RandEng)));
 			}
 		};
 	}
 	template<typename info_iterator, typename fitness>
-	state hill_climbing_search(info_iterator InfoBeg, info_iterator InfoEnd, fitness&& Fitness, unsigned int StableStep, unsigned int MaxStep) {
+	state hill_climbing_search(info_iterator InfoBeg, info_iterator InfoEnd, fitness&& Fitness, unsigned int StableStep, unsigned int MaxStep, double Sigma) {
 		state State(std::distance(InfoBeg, InfoEnd), 0.5);
 		auto Evaluate = [=,&Fitness](const state& x) {
 			double R = 0;
@@ -425,7 +511,7 @@ namespace tempss{
 
 			return Fitness(R, M);
 		};
-		detail::mutate Mutate;
+		detail::mutate Mutate(Sigma);
 		hmLib::optimize::hill_climbing_search(State, Evaluate, Mutate, hmLib::optimize::breakers::limited_const_stable_breaker<state, double>(StableStep, MaxStep),hmLib::random::default_engine());
 		return State;
 	}
@@ -464,8 +550,8 @@ namespace tempss{
 		state optimize_by_small_step(void) {
 			return f_step_search_optimize(Container.begin(), Container.end(), PreyFitness, 1e-10);
 		}
-		state optimize_by_hill_climbing(unsigned int StableStep, unsigned int MaxStep) {
-			return hill_climbing_search(Container.begin(), Container.end(), PreyFitness, StableStep, MaxStep);
+		state optimize_by_hill_climbing(unsigned int StableStep, unsigned int MaxStep, double Sigma) {
+			return hill_climbing_search(Container.begin(), Container.end(), PreyFitness, StableStep, MaxStep, Sigma);
 		}
 
 		const_iterator begin()const { return std::cbegin(Container); }
@@ -474,7 +560,7 @@ namespace tempss{
 			double R = 0;
 			double M = 0;
 			for (unsigned int i = 0; i < x.size(); ++i) {
-				R += x[i]*Container[i].prey_reward(x[i]);
+				R += x[i] * Container[i].prey_reward(x[i]);
 				M += x[i] * Container[i].prey_mortality(x[i]);
 			}
 
