@@ -12,15 +12,19 @@
 
 namespace hmLib {
 	namespace optimize {
-		//簡単な下に凸な関数f(x) = (x-1)^2。x=1で最小値0。
-		double f(double x) {
-			return (x - 1.0)*(x - 1.0);
+		//Small Step Search
+		template<typename func, typename input_iterator, typename output_iterator>
+		unsigned int small_step_root_listing(func&& Func, input_iterator Beg, input_iterator End, output_iterator Out) {
+			auto PVal = Func(Beg++);
+			if (PVal == 0.0)*(Out++) = Beg;
+
+			for(;Beg != End){
+
+			}
 		}
 
-		//黄金分割法
-		// f(x)が区間[lb,ub]で凸ならば、その極値を返す
-		// 反復時に値が使いまわせるので、fの計算が1回のみでよい
-		// ub: 下限    ub: 上限    K: 反復回数
+		//Golden Section Search Method
+		//	Search maximium value of Func between MinVal and MaxVal
 		template<typename func, typename state>
 		std::pair<state, state> golden_section_search(func&& Func, state MinVal, state MaxVal, double Error) {
 			constexpr double gratio = 1.6180339887498948482045868343656;
@@ -64,10 +68,9 @@ namespace hmLib {
 
 			return std::make_pair(MinVal, MaxVal);
 		}
-		//黄金分割法
-		// f(x)が区間[lb,ub]で凸ならば、その極値を返す
-		// 反復時に値が使いまわせるので、fの計算が1回のみでよい
-		// ub: 下限    ub: 上限    K: 反復回数
+		
+		//黄金分割法(平坦対策付き)
+		//
 		template<typename func, typename state>
 		std::pair<state, state> flat_golden_section_search(func&& Func, state MinVal, state MaxVal, double Error) {
 			constexpr double gratio = 1.6180339887498948482045868343656;
@@ -114,6 +117,7 @@ namespace hmLib {
 					unsigned int BestNoLower;
 					unsigned int BestNoUpper;
 
+					//small step
 					while (true) {
 						BestNoLower = 0;
 						BestNoUpper = 0;
