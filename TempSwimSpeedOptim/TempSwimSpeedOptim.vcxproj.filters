@@ -23,5 +23,8 @@
     <ClCompile Include="UseTempSwimSpeedOptim.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="..\TempSwimSpeedOptim.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
