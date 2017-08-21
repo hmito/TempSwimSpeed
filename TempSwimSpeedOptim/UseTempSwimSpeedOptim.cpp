@@ -36,6 +36,7 @@ int main(void) {
 	boost::format F("%.3f\t%.3f\t%.3f\t%.3f\n");
 
 	std::cout << "===x1===" << std::endl;
+	std::cout << W1 << std::endl;
 	for (unsigned int i = 0; i < U.size(); ++i) {
 		double f = x1[i];
 		double r = System.begin()[i].prey_reward(f);
@@ -50,6 +51,7 @@ int main(void) {
 	double W2 = System.get_prey_fitness(x2);
 
 	std::cout << "===x2===" << std::endl;
+	std::cout << W2 << std::endl;
 	for (unsigned int i = 0; i < U.size(); ++i) {
 		double f = x2[i];
 		double r = System.begin()[i].prey_reward(f);
@@ -59,7 +61,7 @@ int main(void) {
 		std::cout << F%f%r%m%drdm << std::endl;
 	}
 	std::cout << std::endl;
-
+	/*
 	auto x3 = System.optimize_by_bisect();
 	double W3l = System.get_prey_fitness(x3.first);
 	double W3u = System.get_prey_fitness(x3.second);
@@ -73,10 +75,35 @@ int main(void) {
 
 		std::cout << F%f%r%m%drdm << std::endl;
 	}
-
 	std::cout << "===x3u===" << std::endl;
 	for (unsigned int i = 0; i < U.size(); ++i) {
 		double f = x3.second[i];
+		double r = System.begin()[i].prey_reward(f);
+		double m = System.begin()[i].prey_mortality(f);
+		double drdm = r / (m + std::numeric_limits<double>::min());
+
+		std::cout << F%f%r%m%drdm << std::endl;
+	}
+	std::cout << std::endl;
+	*/
+
+	auto x4 = System.optimize_by_stepbisect();
+	double W4l = System.get_prey_fitness(x4.first);
+	double W4u = System.get_prey_fitness(x4.second);
+	std::cout << "===x4l===" << std::endl;
+	std::cout << W4l <<"\t"<< W4u << std::endl;
+	for(unsigned int i = 0; i < U.size(); ++i){
+		double f = x4.first[i];
+		double r = System.begin()[i].prey_reward(f);
+		double m = System.begin()[i].prey_mortality(f);
+		double drdm = r / (m + std::numeric_limits<double>::min());
+
+		std::cout << F%f%r%m%drdm << std::endl;
+	}
+
+	std::cout << "===x4u===" << std::endl;
+	for(unsigned int i = 0; i < U.size(); ++i){
+		double f = x4.second[i];
 		double r = System.begin()[i].prey_reward(f);
 		double m = System.begin()[i].prey_mortality(f);
 		double drdm = r / (m + std::numeric_limits<double>::min());
