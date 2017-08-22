@@ -225,23 +225,22 @@ namespace tempss{
 		double mu;			//basic mortality change of prey by foraging
 		double d;			//relative density of predator/prey
 	private://calculated parameters
-		double c;			//metaboric cost of predator
+		double m;			//metaboric cost of predator
 		double r;			//predation perfodrdmance of prey
 		double f_thr;		//thrsholf of predator foragingif(
 		double drdm0;		//drdm at f=0
 		double drdm1;		//drdm at f=1
 		double drdmF;		//drdm at f=f_thr+delta
 	public:
-		template<typename prey_reward_t, typename predator_cost_t>
-		time_info(const predation& Predation_, const prey_reward_t& PreyReward, const predator_cost_t& PredatorCost, double v_, double u_, double mu_, double d_)
+		template<typename prey_reward_t>
+		time_info(const predation& Predation_, const prey_reward_t& PreyReward, double v_, double u_, double m, double mu_, double d_)
 			: Predation(Predation_)
 			, v(v_)
 			, u(u_)
 			, mu(mu_)
 			, d(d_) {
-			c = PredatorCost(v);
 			r = PreyReward(u);
-			f_thr = find_predation_threshold(Predation_, v, u, c);
+			f_thr = find_predation_threshold(Predation_, v, u, m);
 			if (f_thr <= 0.0)f_thr = -1e-10;
 			drdm0 = std::max(0., r / (prey_mortality(0) + std::numeric_limits<double>::min()));
 			drdm1 = std::max(0., r / (prey_mortality(1) + std::numeric_limits<double>::min()));
@@ -252,7 +251,7 @@ namespace tempss{
 			return f > f_thr? 1 : 0;
 		}
 		double predator_payoff(double f)const {
-			return std::max(Predation(f, v, u) - c, 0.0);
+			return std::max(Predation(f, v, u) - m, 0.0);
 		}
 		double prey_reward(double f)const {
 			return r;
@@ -337,14 +336,18 @@ namespace tempss{
 		prey_fitness PreyFitness;
 		container Container;
 	public:
-		template<typename prey_reward, typename predator_cost, typename iterator>
-		optimizer_system(predation Predation_, prey_fitness PreyFitness_, prey_reward&& PreyReward, predator_cost&& PredatorCost, iterator VBeg, iterator VEnd, iterator UBeg, iterator UEnd, double base_mu_, double d_)
+		template<typename prey_reward, typename iterator>
+		optimizer_system(predation Predation_, prey_fitness PreyFitness_, prey_reward&& PreyReward, iterator VBeg, iterator VEnd, iterator UBeg, iterator UEnd, iterator mBeg, iterator mEnd, double base_mu_, double d_)
 			: Predation(std::move(Predation_))
 			, PreyFitness(std::move(PreyFitness_)) {
-			if (std::distance(VBeg, VEnd) != std::distance(UBeg, UEnd))throw std::exception();
+			if(std::distance(VBeg, VEnd) != std::distance(UBeg, UEnd)
+				|| std::distance(VBeg, VEnd) != std::distance(mBeg, mEnd)
+			){
+				throw std::exception();
+			}
 
-			for (; VBeg != VEnd; ++VBeg, ++UBeg) {
-				Container.emplace_back(Predation, PreyReward, PredatorCost, *VBeg, *UBeg, base_mu_, d_);
+			for (; VBeg != VEnd; ++VBeg, ++UBeg, ++mBeg) {
+				Container.emplace_back(Predation, PreyReward, *VBeg, *UBeg, *mBeg, base_mu_, d_);
 			}
 		}
 		std::pair<state,state> operator()(void)const{
