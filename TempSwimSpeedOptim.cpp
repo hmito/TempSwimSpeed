@@ -40,7 +40,7 @@ Rcpp::List tss_probforage_optimize(
 
 	tempss::state vLower;
 	tempss::state vUpper;
-	std::tie(vLower,vUpper) = System.optimize_by_stepbisect();
+	std::tie(vLower,vUpper) = System();
 
 	double PreyWL = System.get_prey_fitness(vLower);
 	double PreyWH = System.get_prey_fitness(vUpper);
