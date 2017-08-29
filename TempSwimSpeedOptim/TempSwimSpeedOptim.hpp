@@ -214,7 +214,7 @@ namespace tempss{
 	bool is_prey_fitness_increasing(prey_fitness PreyFitness, double r, double m, double drdm) { return detail::is_prey_fitness_increasing_impl(PreyFitness, r, m, drdm, PreyFitness); }
 
 	template<typename predation>
-	struct time_info {
+	struct time_info{
 	private:
 		//any function of
 		//	predation rate of predator (predation probability of prey)
@@ -222,56 +222,59 @@ namespace tempss{
 	private://given parameters
 		double v;			//speed of predator
 		double u;			//speed of prey
-		double mu;			//basic mortality change of prey by foraging
+		double c;			//metaboric cost of predator
 		double d;			//relative density of predator/prey
+		double e;			//relative risk of predation for resting prey
 	private://calculated parameters
-		double m;			//metaboric cost of predator
-		double r;			//predation perfodrdmance of prey
-		double f_thr;		//thrsholf of predator foragingif(
-		double drdm0;		//drdm at f=0
-		double drdm1;		//drdm at f=1
-		double drdmF;		//drdm at f=f_thr+delta
+		double r;			//foraging performance of prey
+		double f_thr;		//thrsholf f of predator foraging
+		double m0;			//mortality under f=0
+		double mF;			//mortality under f<=f_thr
+		double m1;			//mortality under f=1
 	public:
 		template<typename prey_reward_t>
-		time_info(const predation& Predation_, const prey_reward_t& PreyReward, double v_, double u_, double m, double mu_, double d_)
+		time_info(const predation& Predation_, const prey_reward_t& PreyReward, double v_, double u_, double c_, double mu_, double d_)
 			: Predation(Predation_)
 			, v(v_)
 			, u(u_)
-			, mu(mu_)
-			, d(d_) {
+			, c(c_)
+			, d(d_){
 			r = PreyReward(u);
-			f_thr = find_predation_threshold(Predation_, v, u, m);
-			if (f_thr <= 0.0)f_thr = -1e-10;
-			drdm0 = std::max(0., r / (prey_mortality(0) + std::numeric_limits<double>::min()));
-			drdm1 = std::max(0., r / (prey_mortality(1) + std::numeric_limits<double>::min()));
-			drdmF = f_thr <= 0 ? drdm0 : f_thr >= 1 ? drdm1 : std::max(0., r / (prey_mortality(f_thr, 1) + std::numeric_limits<double>::min()));
+
+			//necessary effective fraction of prey (i.e., f + r*(1-f))
+			double pf_thr = find_predation_threshold(Predation_, v, u, c);
+
+			if(pf_thr <= e)f_thr = -1e-10;
+			else f_thr = std::min((pf_thr - e) / (1 - e + std::numeric_limits<double>::min()), 1.0);
+
+			m0 = prey_mortality(0);
+			m1 = prey_mortality(1);
+			mF = prey_mortality(f_thr, 0);
 		}
 	public:
-		double predator_strategy(double f)const {
-			return f > f_thr? 1 : 0;
+		double predator_strategy(double f)const{
+			return f > f_thr ? 1 : 0;
 		}
-		double predator_payoff(double f)const {
-			return std::max(Predation(f, v, u) - m, 0.0);
+		double predator_reward(double f)const{
+			return Predation(f + e*(1 - f), v, u);
 		}
-		double prey_reward(double f)const {
+		double predator_cost()const{ return c; }
+		double prey_reward(double f)const{
 			return r;
 		}
+		double prey_pf(double f)const{ return f + e*(1 - f); }
 		double prey_mortality(double f)const {
 			return prey_mortality(f, predator_strategy(f));
 		}
 		double prey_mortality(double f, double p) const {
-			return mu + Predation(f, v, u) * d * p / (f + std::numeric_limits<double>::min());
-		}
-		double prey_predation_mortality(double f)const{
-			return prey_predation_mortality(f, predator_strategy(f));
-		}
-		double prey_predation_mortality(double f, double p) const{
-			return Predation(f, v, u) * d * p / (f + std::numeric_limits<double>::min());
+			if(p <= 0.0)return 0.;
+
+			return Predation(prey_pf(f), v, u) * d * p / (prey_pf(f) + std::numeric_limits<double>::min());
 		}
 		double f_threshold()const{ return f_thr; }
-		double prey_drdm0()const { return drdm0; }
-		double prey_drdm1()const{ return drdm1; }
-		double prey_drdmF()const{ return drdmF; }
+		double prey_drdm0()const{ return r / (m0 + std::numeric_limits<double>::min()); }
+		double prey_drdm1()const{ return r / (m1 + std::numeric_limits<double>::min()); }
+		double prey_drdmF()const{ return r / (mF + std::numeric_limits<double>::min()); }
 	};
 
 	using state = std::vector<double>;
@@ -390,11 +393,10 @@ namespace tempss{
 			, b(b_)
 			, h(h_){
 		}
-		double operator()(double f, double v, double u) const{
-			if(f <= 0 || v <= 0 || v<=u)return 0.;
-
+		double operator()(double pf, double v, double u) const{
+			if(pf <= 0 || v <= 0 || v<=u)return 0.0;
 			double gamma = a*std::pow(v - u, b);
-			return gamma * f / (1 + gamma*f*h);
+			return gamma * pf / (1 + gamma*pf*h);
 		}
 	};
 
