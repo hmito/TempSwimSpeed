@@ -13,10 +13,10 @@
 //following three parameters determine the prey traits
 //	k		coefficient of foraging reward for prey (k*u is the reward)
 //	mu_a	basic mortality rate of active prey (not include the mortality by predation)
-//	mu_r	basic mortality rate of resting prey (mu_a >= mu_r)
+//	mu_i	basic mortality rate of resting prey (mu_a >= mu_r)
 //following two parameters determine the predator traits
+//	M		Vector of predation cost for predators
 //	d		relative density of predator/prey
-//	c		predation cost for predators
 // [[Rcpp::export]]
 Rcpp::List tss_probforage_optimize(
 	Rcpp::NumericVector V,
@@ -25,22 +25,21 @@ Rcpp::List tss_probforage_optimize(
 	double b,
 	double h,
 	double k,
-	double mu_a,
-	double mu_r,
-	double c,
+	double rho_a,
+	double rho_i,
+	Rcpp::NumericVector M,
 	double d
 ){
 	using predation = tempss::probforage_predation;
 	using prey_fitness = tempss::ratio_fitness;
-	using predator_cost = tempss::constant_predator_cost;
 	using prey_reward = tempss::linear_prey_reward;
 	using this_system = tempss::optimizer_system<predation, prey_fitness>;
 
-	this_system System(predation(a, b, h), prey_fitness(1.0, V.size()*mu_r), prey_reward(k), predator_cost(c), V.begin(), V.end(), U.begin(), U.end(), mu_a-mu_r, d);
+	this_system System(predation(a, b, h), prey_fitness(1.0, V.size()*rho_i), prey_reward(k), V.begin(), V.end(), U.begin(), U.end(), M.begin(), M.end(), rho_a - rho_i, d);
 
 	tempss::state vLower;
 	tempss::state vUpper;
-	std::tie(vLower,vUpper) = System.optimize_by_stepbisect();
+	std::tie(vLower,vUpper) = System();
 
 	double PreyWL = System.get_prey_fitness(vLower);
 	double PreyWH = System.get_prey_fitness(vUpper);

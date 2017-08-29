@@ -1,4 +1,5 @@
 library("Rcpp")
+library("BH")
 sourceCpp("TempSwimSpeedOptim.cpp")
 
 pi = acos(-1)
@@ -21,17 +22,18 @@ b = 2.0		#non-linear influence of speed difference
 h = 2.0		#handling time for predation a prey
 
 #following three parameters determine the prey traits
-k = 0.1			#coefficient of foraging reward for prey (k*u is the reward)
-mu_a = 0.0005	#basic mortality rate of active prey (not include the mortality by predation)
-mu_r = 0.0005	#basic mortality rate of resting prey (mu_a >= mu_r)
+k = 0.1				#coefficient of foraging reward for prey (k*u is the reward)
+rho_a = 0.0010	#basic mortality rate of active prey (not include the mortality by predation)
+rho_i = 0.0005	#basic mortality rate of inactive prey (mu_a >= mu_i)
 
 #following two parameters determine the predator traits
-c = 0.0001	#relative density of predator/prey
-d = 0.01		#predation cost for predators
+M = rep(0.01,length=length(t))	#relative density of predator/prey
+d = 0.02		#predation cost for predators
 
 #Optimization
 #Because prey have discrete choice (f = 0, f* or 1 where f* is the threshold prey frequency for predators activity),
-#there are two potential optimal behaviour of prey (before and after the peak of fitness) 
+#there are two potential optimal behaviour of prey (before and after the peak of fitness)
+#Return values include the following members
 #	PreyL		Optimal prey behaviour at lower point of the fitness peak
 #	PreyH		Optimal prey behaviour at upper point of the fitness peak
 #	PreyWL	Fitness of prey at PreyL
@@ -45,19 +47,11 @@ d = 0.01		#predation cost for predators
 #	PredationMortality_1	Mortality rate of prey caused by predation when f=1
 #	drdm_f	Performance of foraging for prey when f < f*
 #	drdm_1	Performance of foraging for prey when f = 1
-Ans = tss_probforage_optimize(V, U,a, b, h, k, mu_a, mu_r, c, d)
+Ans = tss_probforage_optimize(V, U,a, b, h, k, rho_a, rho_i, M, d)
 
 #Optimal prey behaviour f (optimal predator behaviour is 1 if f=1, or zero otherwise)
 #	grey color is the difference of upper and lower optimal points.
 barplot(rbind(Ans$PreyL,Ans$PreyH-Ans$PreyL),xlab="time")
-
-#Fitness of prey
-Ans$PreyWL #lower point
-Ans$PreyWH #upper point
-
-#Fitness of predator
-Ans$PredatorWL #lower point
-Ans$PredatorWH #upper point
 
 #Mortality rate at each time step
 plot(Ans$PredationMortality_1,type="b",pch=19,xlab="time",ylab= "predation risk")
