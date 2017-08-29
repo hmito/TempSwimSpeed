@@ -1,5 +1,5 @@
 #ifndef TEMPSWIMSPEEDOPTIM_INC
-#define TEMPSWIMSPEEDOPTIM_INC
+#define TEMPSWIMSPEEDOPTIM_INC 100
 #
 #include<tuple>
 #include<vector>
@@ -7,24 +7,19 @@
 #include<numeric>
 #include<boost/math/tools/roots.hpp>
 #include<boost/math/tools/minima.hpp>
-#include"../../hmLib/hmLib/optimize.hpp"
-#include"../../hmLib/hmLib/random.hpp"
 
 namespace hmLib {
 	namespace optimize {
-		//Small Step Search
-		template<typename func, typename input_iterator, typename output_iterator>
-		unsigned int small_step_root_listing(func&& Func, input_iterator Beg, input_iterator End, output_iterator Out) {
-			auto PVal = Func(Beg++);
-			if (PVal == 0.0)*(Out++) = Beg;
-
-			for(;Beg != End){
-
-			}
-		}
-
-		//Golden Section Search Method
-		//	Search maximium value of Func between MinVal and MaxVal
+		/*!
+		@brief	golden section search method
+		Search the maximum value of Func in [MinVal:MaxVal].
+		@param [in]	Func	Target function. The function need not to have a range where the slope becomes zero.
+		@param [in]	MinVal	Minimum value of searching range.
+		@param [in]	MaxVal	Maximum value of searching range.
+		@param [in]	Error	Accuracy of the search. The return range will be less than Error.
+		@return	Pair of the value (Min, Max) where Func becomes maximum value.
+				The distance of return pair Max-Min will be less than Error if the searching is sucessfully finished.
+				If the searching of maximum value is failed, the return pair distance will be larger than Error.*/
 		template<typename func, typename state>
 		std::pair<state, state> golden_section_search(func&& Func, state MinVal, state MaxVal, double Error) {
 			constexpr double gratio = 1.6180339887498948482045868343656;
@@ -68,11 +63,19 @@ namespace hmLib {
 
 			return std::make_pair(MinVal, MaxVal);
 		}
-		
-		//黄金分割法(平坦対策付き)
-		//
+
+		/*!
+		@brief	golden section search method with small division method.
+		Search the maximum value of Func in [MinVal:MaxVal].
+		@param [in]	Func	Target function. The function can have a range where the slope becomes zero.
+		@param [in]	MinVal	Minimum value of searching range.
+		@param [in]	MaxVal	Maximum value of searching range.
+		@param [in]	Error	Accuracy of the search. The return range will be less than Error.
+		@return	Pair of the value (Min, Max) where Func becomes maximum value.
+				The distance of return pair Max-Min will be less than Error if the searching is sucessfully finished.
+				If the searching of maximum value is failed, the return pair distance will be larger than Error.*/
 		template<typename func, typename state>
-		std::pair<state, state> flat_golden_section_search(func&& Func, state MinVal, state MaxVal, double Error) {
+		std::pair<state, state> flatable_golden_section_search(func&& Func, state MinVal, state MaxVal, double Error) {
 			constexpr double gratio = 1.6180339887498948482045868343656;
 
 			auto MinEval = Func(MinVal);
@@ -178,63 +181,6 @@ namespace hmLib {
 	}
 }
 namespace tempss{
-	//黄金分割法
-	// f(x)が区間[lb,ub]で凸ならば、その極値を返す
-	// 反復時に値が使いまわせるので、fの計算が1回のみでよい
-	// ub: 下限    ub: 上限    K: 反復回数
-	template<typename func, typename state>
-	std::pair<state, state> golden_section_search(func&& Func, state MinVal, state MaxVal, double Error) {
-		constexpr double gratio = 1.6180339887498948482045868343656;
-
-		auto MinEval = Func(MinVal);
-		auto MaxEval = Func(MaxVal);
-
-		//First division: MinSide
-		auto LowerVal = (gratio*MinVal + MaxVal) / (1 + gratio);
-		auto LowerEval = Func(LowerVal);
-		if (LowerEval < MinEval && LowerEval < MaxEval)return std::make_pair(MinVal, MaxVal);
-
-		//Second division: MaxSide
-		state UpperVal = (gratio*LowerVal + MaxVal) / (1 + gratio);
-		auto UpperEval = Func(UpperVal);
-
-		while (MaxVal - MinVal > Error) {
-			//Update Min 
-			if (LowerEval < UpperEval) {
-				MinVal = std::move(LowerVal);
-				MinEval = std::move(LowerEval);
-
-				LowerVal = std::move(UpperVal);
-				LowerEval = std::move(UpperEval);
-
-				UpperVal = (gratio*LowerVal + MaxVal) / (1 + gratio);
-				UpperEval = Func(UpperVal);
-			}
-			//Update Max
-			else if (UpperEval < LowerEval) {
-				MaxVal = std::move(UpperVal);
-				MaxEval = std::move(UpperEval);
-
-				UpperVal = std::move(LowerVal);
-				UpperEval = std::move(LowerEval);
-
-				LowerVal = (MinVal + gratio*UpperVal) / (1 + gratio);
-				LowerEval = Func(LowerVal);
-			}
-			//Same case
-			else {
-				LowerVal = (MinVal + LowerVal) / 2.;
-				LowerEval = Func(LowerVal);
-				UpperVal = (MaxVal + UpperVal) / 2.;
-				UpperEval = Func(UpperVal);
-
-				if (LowerVal - MinVal < Error && MaxVal - UpperVal < Error)break;
-			}
-		}
-
-		return std::make_pair(MinVal, MaxVal);
-	}
-
 	namespace detail {
 		template<typename T, typename eT, typename ans_type = decltype(std::declval<eT>().predation_threshold(1.0, 1.0, 1.0))>
 		double find_predation_threshold_impl(const T& val, double v, double u, double c, const eT& eval) {
@@ -242,7 +188,7 @@ namespace tempss{
 		}
 		template<typename T>
 		double find_predation_threshold_impl(const T& val, double v, double u, double c, ...) {
-			auto Func = [=](double f) {return c - val(f, v, u); };
+			auto Func = [=](double f) {return c - f*val(f, v, u); };
 			double v1 = Func(1);
 			double v0 = Func(0);
 			if (v1 < 0 && v0 < 0)return 0;
@@ -269,7 +215,7 @@ namespace tempss{
 	bool is_prey_fitness_increasing(prey_fitness PreyFitness, double r, double m, double drdm) { return detail::is_prey_fitness_increasing_impl(PreyFitness, r, m, drdm, PreyFitness); }
 
 	template<typename predation>
-	struct time_info {
+	struct time_info{
 	private:
 		//any function of
 		//	predation rate of predator (predation probability of prey)
@@ -277,247 +223,106 @@ namespace tempss{
 	private://given parameters
 		double v;			//speed of predator
 		double u;			//speed of prey
-		double base_mu;		//basic mortality for prey
-		double d;			//relative density of predator/prey
-	private://calculated parameters
 		double c;			//metaboric cost of predator
-		double r;			//predation perfodrdmance of prey
-		double Max_drdm;	//max dr/dm
-		double Min_drdm;	//min dr/dm
-		double f_thr;		//thrsholf of predator foragingif(
+		double d;			//relative density of predator/prey
+		double e;			//relative risk of predation for resting prey
+	private://calculated parameters
+		double r;			//foraging performance of prey
+		double f_thr;		//thrsholf f of predator foraging
+		double m0;			//mortality under f=0
+		double mF;			//mortality under f<=f_thr
+		double m1;			//mortality under f=1
 	public:
-		template<typename prey_reward_t, typename predator_cost_t>
-		time_info(const predation& Predation_, const prey_reward_t& PreyReward, const predator_cost_t& PredatorCost, double v_, double u_, double base_mu_, double d_)
+		template<typename prey_reward_t>
+		time_info(const predation& Predation_, const prey_reward_t& PreyReward, double v_, double u_, double c_, double mu_, double d_)
 			: Predation(Predation_)
 			, v(v_)
 			, u(u_)
-			, base_mu(base_mu_)
-			, d(d_) {
-			c = PredatorCost(v);
+			, c(c_)
+			, d(d_){
 			r = PreyReward(u);
-			f_thr = find_predation_threshold(Predation_, v, u, c);
-			if (f_thr <= 0.0)f_thr = -1e-10;
-			Max_drdm = std::max(0., prey_reward(0) / (prey_mortality(0) + std::numeric_limits<double>::min()));
-			Min_drdm = std::max(0., prey_reward(1) / (prey_mortality(1) + std::numeric_limits<double>::min()));
+
+			//necessary effective fraction of prey (i.e., f + r*(1-f))
+			double pf_thr = find_predation_threshold(Predation_, v, u, c);
+
+			if(pf_thr <= e)f_thr = -1e-10;
+			else f_thr = std::min((pf_thr - e) / (1 - e + std::numeric_limits<double>::min()), 1.0);
+
+			m0 = prey_mortality(0);
+			m1 = prey_mortality(1);
+			mF = prey_mortality(f_thr, 0);
 		}
 	public:
-		double predator_strategy(double f)const {
-			return f > f_thr? 1 : 0;
+		double predator_strategy(double f)const{
+			return f > f_thr ? 1 : 0;
 		}
-		double predator_payoff(double f)const {
-			return std::max(Predation(f, v, u) - c, 0);
+		double predator_reward(double f)const{
+			return Predation(f + e*(1 - f), v, u);
 		}
-		double prey_reward(double f)const {
+		double predator_cost()const{ return c; }
+		double prey_reward(double f)const{
 			return r;
 		}
+		double prey_pf(double f)const{ return f + e*(1 - f); }
 		double prey_mortality(double f)const {
 			return prey_mortality(f, predator_strategy(f));
 		}
 		double prey_mortality(double f, double p) const {
-			return base_mu + Predation(f, v, u) * d * p / (f + std::numeric_limits<double>::min());
+			if(p <= 0.0)return 0.;
+
+			return Predation(prey_pf(f), v, u) * d * p / (prey_pf(f) + std::numeric_limits<double>::min());
 		}
-		double find_f(double drdm, unsigned int Bits)const {
-			if (drdm >= max_drdm()) return 0.0;
-			else if (drdm <= min_drdm()) return 1.0;
-			auto val = boost::math::tools::bisect(
-				[this, drdm](double f) {return prey_reward(f) / (prey_mortality(f) + std::numeric_limits<double>::min()) - drdm; },
-				0.0,1.0,
-				boost::math::tools::eps_tolerance<double>(Bits)
-			);
-			return (val.first + val.second) / 2.0;
-		}
-		double max_drdm()const { return Max_drdm; }
-		double min_drdm()const { return Min_drdm; }
-		double f_threshold()const { return f_thr; }
+		double f_threshold()const{ return f_thr; }
+		double prey_drdm0()const{ return r / (m0 + std::numeric_limits<double>::min()); }
+		double prey_drdm1()const{ return r / (m1 + std::numeric_limits<double>::min()); }
+		double prey_drdmF()const{ return r / (mF + std::numeric_limits<double>::min()); }
 	};
 
 	using state = std::vector<double>;
 
-	template<typename info_iterator,typename fitness>
-	std::pair<state, state> drdm_bisect_optimize(info_iterator InfoBeg, info_iterator InfoEnd, fitness&& Fitness) {
-		double MinRM = std::numeric_limits<double>::max();
-		double MaxRM = std::numeric_limits<double>::lowest();
-		for (auto Itr = InfoBeg; Itr != InfoEnd; ++Itr) {
-			MaxRM = std::max(MaxRM, Itr->max_drdm());
-			MinRM = std::min(MinRM, Itr->min_drdm());
+	template<typename info_iterator, typename fitness>
+	std::pair<state, state> stepdrdm_bisect_optimize(info_iterator InfoBeg, info_iterator InfoEnd, fitness&& Fitness){
+		using data_t = std::tuple<unsigned int, double, double>;
+		std::vector<data_t> Data;
+
+		//Add data
+		for(auto Itr = InfoBeg; Itr != InfoEnd; ++Itr){
+			double f = Itr->f_threshold();
+			unsigned int Pos = static_cast<unsigned int>(std::distance(InfoBeg, Itr));
+			if(f < 1.0){
+				Data.emplace_back(Pos, Itr->prey_drdm0(), f);
+				Data.emplace_back(Pos, Itr->prey_drdm1(), 1.0);
+			} else{
+				Data.emplace_back(Pos, Itr->prey_drdm1(), 1.0);
+			}
 		}
 
-		auto Func = [=, &PreyFitness=Fitness](double drdm) {
-			double r = 0;
-			double m = 0;
-			for (auto Itr = InfoBeg; Itr != InfoEnd; ++Itr) {
-				double f = Itr->find_f(drdm, 20);
-				double dr = Itr->prey_reward(f);
-				double dm = Itr->prey_mortality(f);
+		std::sort(Data.begin(), Data.end(), [](const data_t& v1, const data_t& v2){return std::get<1>(v1) > std::get<1>(v2); });
 
-				r += dr*f;
-				m += dm*f;
-			}
-			return PreyFitness(r, m);
-		};
-
-		//Pair first: threshold value, second: 
-		auto drdmPair = hmLib::optimize::flat_golden_section_search(Func, MinRM, MaxRM, 1e-10);
-
-		unsigned int Size = std::distance(InfoBeg, InfoEnd);
+		unsigned int Size = static_cast<unsigned int>(std::distance(InfoBeg, InfoEnd));
 		std::vector<double> Lower(Size, 0.);
 		std::vector<double> Upper(Size, 0.);
 
-		auto Itr = InfoBeg;
-		for (unsigned int i = 0; i<Size; ++i, ++Itr) {
-			Upper.at(i) = Itr->find_f(drdmPair.first, 20);
-			Lower.at(i) = Itr->find_f(drdmPair.second, 20);
+		unsigned int i = 0;
+		for(; i < Data.size(); ++i){
+			unsigned int No = std::get<0>(Data[i]);
+			double drdm = std::get<1>(Data[i]);
+			double f = std::get<2>(Data[i]);
+
+			Upper[No] = f;
+
+			double r = 0.0;
+			double m = 0.0;
+			for(unsigned int j = 0; j < Size; ++j){
+				r += InfoBeg[j].prey_reward(Upper[j])*Upper[j];
+				m += InfoBeg[j].prey_mortality(Upper[j])*Upper[j];
+			}
+			if(!is_prey_fitness_increasing(Fitness, r, m, drdm))break;
+
+			Lower[No] = f;
 		}
+
 		return std::make_pair(std::move(Lower), std::move(Upper));
-	}
-
-	namespace detail {
-		struct time_step {
-		private:
-			using this_type = time_step;
-		private:
-			unsigned int time;
-			double f;
-			double rm;
-			double dr;
-			double dm;
-			bool Fail;
-		public:
-			time_step(unsigned int time_, double f_,double dr_, double dm_)
-				:time(time_),f(f_),dr(dr_),dm(dm_), Fail(false){
-				rm = dr / (dm + std::numeric_limits<double>::min());
-			}
-			void set(double f_, double dr_, double dm_) {
-				f = f_;
-				dr = dr_;
-				dm = dm_;
-				rm = dr / (dm + std::numeric_limits<double>::min());
-			}
-			void fail() { Fail = true; }
-			void clear_fail() { Fail = false; }
-			bool is_fail()const { return Fail; }
-			unsigned int pos()const { return time; }
-			double fraction()const { return f; }
-			double reward()const { return f*dr; }
-			double mortality()const { return f*dm; }
-			double drdm()const { return dr / (dm + std::numeric_limits<double>::min()); }
-			double lower_drdm()const { return (Fail ||f <= 0)? std::numeric_limits<double>::max(): dr / (dm + std::numeric_limits<double>::min()); }
-			double upper_drdm()const { return (Fail ||f >= 1)? 0.: dr / (dm + std::numeric_limits<double>::min()); }
-			friend bool operator<(const this_type& v1, const this_type& v2) {
-				return v1.drdm() < v2.drdm();
-			}
-		};
-	}
-	template<typename info_iterator, typename fitness>
-	state f_step_search_optimize(info_iterator InfoBeg, info_iterator InfoEnd, fitness&& Fitness, double Error) {
-		unsigned int Size = std::distance(InfoBeg, InfoEnd);
-
-		std::vector<double> Dif(Size, 0.1);
-
-		std::vector<detail::time_step> TimeSet;
-		auto Itr = InfoBeg;
-		for (unsigned int i = 0; i<Size; ++i, ++Itr) {
-			double f = 0.5;
-			TimeSet.emplace_back(i, f, Itr->prey_reward(f), Itr->prey_mortality(f));
-		}
-
-		unsigned int ppos = std::numeric_limits<unsigned int>::max();
-		bool Increase = true;
-		double Step = 1.0;
-		while (Step > Error) {
-			for (auto& val:TimeSet)val.clear_fail();
-			Step /= 10.0;
-
-			unsigned int No = std::numeric_limits<unsigned int>::max();
-			bool Increase = false;
-			while (std::any_of(TimeSet.begin(), TimeSet.end(), [](const detail::time_step& v) {return !v.is_fail(); })) {
-				double R = std::accumulate(TimeSet.begin(), TimeSet.end(), 0., [](double v, const detail::time_step& t) {return v + t.reward(); });
-				double M = std::accumulate(TimeSet.begin(), TimeSet.end(), 0., [](double v, const detail::time_step& t) {return v + t.mortality(); });
-				auto lRM = std::min_element(TimeSet.begin(), TimeSet.end(), [](const detail::time_step& v1, const detail::time_step& v2) {return v1.lower_drdm() < v2.lower_drdm(); });
-				auto uRM = std::max_element(TimeSet.begin(), TimeSet.end(), [](const detail::time_step& v1, const detail::time_step& v2) {return v1.upper_drdm() < v2.upper_drdm(); });
-
-				if (is_prey_fitness_increasing(Fitness, R, M, uRM->upper_drdm())) {
-					auto& t = *uRM;
-					if (t.fraction() >= 1.0) {
-						break;
-					}
-
-					if (No == t.pos() && !Increase) {
-						t.fail();
-						continue;
-					}
-					No = t.pos();
-					Increase = true;
-
-					const auto& Info = *std::next(InfoBeg, No);
-					double f = std::min(1.0, t.fraction() + Step);
-					double dr = Info.prey_reward(f);
-					double dm = Info.prey_mortality(f);
-					t.set(f, dr, dm);
-				} else {
-					auto& t = *lRM;
-					if (t.fraction() <= 0.0) {
-						break;
-					}
-
-					if (No == t.pos() && Increase) {
-						const auto& Info = *std::next(InfoBeg, No);
-						double f = std::max(0.0, t.fraction() - Step);
-						double dr = Info.prey_reward(f);
-						double dm = Info.prey_mortality(f);
-						t.set(f, dr, dm);
-
-						t.fail();
-						continue;
-					}
-					No = t.pos();
-					Increase = false;
-
-					const auto& Info = *std::next(InfoBeg, No);
-					double f = std::max(0.0, t.fraction() - Step);
-					double dr = Info.prey_reward(f);
-					double dm = Info.prey_mortality(f);
-					t.set(f, dr, dm);
-				}
-			}
-		}
-
-
-		state State;
-		for (const auto& v : TimeSet)State.push_back(v.fraction());
-
-		return State;
-	}
-
-	namespace detail {
-		struct mutate {
-			double Sigma;
-			mutate(double Sigma_):Sigma(Sigma_){}
-			template<typename urbg>
-			void operator()(state& x, urbg&& RandEng) {
-				unsigned int pos = std::uniform_int_distribution<unsigned int>(0, x.size()-1)(RandEng);
-
-				x[pos] = std::max(0.,std::min(1.,std::normal_distribution<double>(x[pos], Sigma)(RandEng)));
-			}
-		};
-	}
-	template<typename info_iterator, typename fitness>
-	state hill_climbing_search(info_iterator InfoBeg, info_iterator InfoEnd, fitness&& Fitness, unsigned int StableStep, unsigned int MaxStep, double Sigma) {
-		state State(std::distance(InfoBeg, InfoEnd), 0.5);
-		auto Evaluate = [=,&Fitness](const state& x) {
-			double R = 0;
-			double M = 0;
-			auto Itr = InfoBeg;
-			for (unsigned int i = 0; i < x.size(); ++i, ++Itr) {
-				R += x[i] * Itr->prey_reward(x[i]);
-				M += x[i] * Itr->prey_mortality(x[i]);
-			}
-
-			return Fitness(R, M);
-		};
-		detail::mutate Mutate(Sigma);
-		hmLib::optimize::hill_climbing_search(State, Evaluate, Mutate, hmLib::optimize::breakers::limited_const_stable_breaker<state, double>(StableStep, MaxStep),hmLib::random::default_engine());
-		return State;
 	}
 
 	template<typename predation_, typename prey_fitness_>
@@ -535,31 +340,27 @@ namespace tempss{
 		prey_fitness PreyFitness;
 		container Container;
 	public:
-		template<typename prey_reward, typename predator_cost, typename iterator>
-		optimizer_system(predation Predation_, prey_fitness PreyFitness_, prey_reward&& PreyReward, predator_cost&& PredatorCost, iterator VBeg, iterator VEnd, iterator UBeg, iterator UEnd, double base_mu_, double d_)
+		template<typename prey_reward, typename iterator>
+		optimizer_system(predation Predation_, prey_fitness PreyFitness_, prey_reward&& PreyReward, iterator VBeg, iterator VEnd, iterator UBeg, iterator UEnd, iterator mBeg, iterator mEnd, double base_mu_, double d_)
 			: Predation(std::move(Predation_))
 			, PreyFitness(std::move(PreyFitness_)) {
-			if (std::distance(VBeg, VEnd) != std::distance(UBeg, UEnd))throw std::exception();
+			if(std::distance(VBeg, VEnd) != std::distance(UBeg, UEnd)
+				|| std::distance(VBeg, VEnd) != std::distance(mBeg, mEnd)
+			){
+				throw std::exception();
+			}
 
-			for (; VBeg != VEnd; ++VBeg, ++UBeg) {
-				Container.emplace_back(Predation, PreyReward, PredatorCost, *VBeg, *UBeg, base_mu_, d_);
+			for (; VBeg != VEnd; ++VBeg, ++UBeg, ++mBeg) {
+				Container.emplace_back(Predation, PreyReward, *VBeg, *UBeg, *mBeg, base_mu_, d_);
 			}
 		}
-		state operator()(void) {
-			return optimize_by_small_step();
+		std::pair<state,state> operator()(void)const{
+			return stepdrdm_bisect_optimize(Container.begin(), Container.end(), PreyFitness);
 		}
-		std::pair<state, state> optimize_by_bisect(void) {
-			return drdm_bisect_optimize(Container.begin(), Container.end(), PreyFitness);
-		}
-		state optimize_by_small_step(void) {
-			return f_step_search_optimize(Container.begin(), Container.end(), PreyFitness, 1e-10);
-		}
-		state optimize_by_hill_climbing(unsigned int StableStep, unsigned int MaxStep, double Sigma) {
-			return hill_climbing_search(Container.begin(), Container.end(), PreyFitness, StableStep, MaxStep, Sigma);
-		}
-
-		const_iterator begin()const { return std::cbegin(Container); }
-		const_iterator end()const { return std::cend(Container); }
+		const_iterator begin()const { return std::begin(Container); }
+		const_iterator end()const { return std::end(Container); }
+		const this_time_info& at(unsigned int i)const{ return Container.at(i); }
+		unsigned int size()const{ return Container.size(); }
 		double get_prey_fitness(const state& x){
 			double R = 0;
 			double M = 0;
@@ -570,8 +371,37 @@ namespace tempss{
 
 			return PreyFitness(R, M);
 		}
+		double get_predator_fitness(const state& x){
+			double W = 0.0;
+
+			for(unsigned int i = 0; i < x.size(); ++i){
+				W += Container[i].predator_payoff(x[i]);
+			}
+			
+			return W;
+		}
 	};
 
+	//Perdation Assumption C1: alpha*(v-u)^beta / {1 + a*(v-u)^b*h} 
+	struct probforage_predation{
+	private:
+		double a;	//inverse of searching time
+		double b;	//non-linear influence of speed difference
+		double h;	//average handling time for predation a prey
+	public:
+		probforage_predation(double a_, double b_, double h_)
+			: a(a_)
+			, b(b_)
+			, h(h_){
+		}
+		double operator()(double pf, double v, double u) const{
+			if(pf <= 0 || v <= 0 || v<=u)return 0.0;
+			double gamma = a*std::pow(v - u, b);
+			return gamma * pf / (1 + gamma*pf*h);
+		}
+	};
+
+	//Perdation Assumption C2: 1 / {(s/v/f + d/(v-u) + h} 
 	struct search_hunt_forage_predation {
 	private:
 		double s;	//average search time when the prey density is 1 (full predation) and swim speed is 1
@@ -588,23 +418,28 @@ namespace tempss{
 			return 1 / (s / v / f + d / (v - u) + h);
 		}
 	};
-	template<typename hunt_prob>
+
+	//Perdation Assumption C3: 1 / {(s/v/f/exp(omega*(v-u)) + h)}
 	struct search_probforage_predation {
 	private:
-		hunt_prob Prob;	//function of successful hunting for given relative speed
-		double s;	//average search time when the prey density is 1 (full predation) and swim speed is 1
-		double h;	//average handling time for predation a prey
+		double omega;	//function of successful hunting for given relative speed
+		double s;		//average search time when the prey density is 1 (full predation) and swim speed is 1
+		double h;		//average handling time for predation a prey
 	public:
-		search_probforage_predation(hunt_prob Prob_, double s_, double h_)
-			: Prob(std::move(Prob_))
+		search_probforage_predation(double omega_, double s_, double h_)
+			: omega(omega_)
 			, s(s_)
 			, h(h_) {
 		}
 		double operator()(double f, double v, double u) const {
 			if (f <= 0 || v <= 0)return 0.;
-			return 1 / (s / v / f / Prob(v / (u + std::numeric_limits<double>::min())) + h);
+			if(v <= u)return 0.;
+			double lambda = 1 - std::exp(omega*(v - u));
+			return 1 / (s / v / f / lambda + h);
 		}
 	};
+
+	//prey reward linearly increase with the prey speed
 	struct linear_prey_reward {
 	private:
 		double k;
@@ -612,20 +447,28 @@ namespace tempss{
 		linear_prey_reward(double k_) :k(k_) {}
 		double operator()(double u) const { return k*u; }
 	};
+
+	//predator foraging cost is constant
 	struct constant_predator_cost {
 	private:
-		double k;
+		double c;
 	public:
-		constant_predator_cost(double k_) :k(k_) {}
-		double operator()(double v) const { return k; }
+		constant_predator_cost(double c_) :c(c_) {}
+		double operator()(double v) const { return c; }
 	};
-	struct exp_diff_fitness {
+
+	//fitness reward-mortality ratio with basic mortality rate: {1 - alpha*exp(-beta*r)} / {m + base_m}
+	struct ratio_fitness{
 	private:
-		double alpha;	//speed of saturation
+		double alpha;
+		double base_m;
 	public:
-		exp_diff_fitness(double alpha_) :alpha(alpha_) {}
-		double operator()(double r, double m) const {
-			return 1 - std::exp(-alpha*r) - m;
+		ratio_fitness(double alpha_, double base_m_) :alpha(alpha_), base_m(base_m_){}
+		double operator()(double r, double m) const{
+			return (1 - std::exp(-alpha*r)) / (m + base_m);
+		}
+		bool is_increasing(double r, double m, double drdm)const{
+			return (base_m+m)*alpha*std::exp(-alpha*r)*drdm > 1 - std::exp(-alpha*r);
 		}
 	};
 }
