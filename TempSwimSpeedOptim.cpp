@@ -4,18 +4,17 @@
 #include <Rcpp.h>
 #include "TempSwimSpeedOptim/TempSwimSpeedOptim.hpp"
 
-//probability foraging optimization
-//V,U		Vector of speed of predators and prey at each time step
+//probability foraging optimization in prey-response game model
+//	V,U		Vector of speed of predators and prey at each time step
 //following three parameters determine the predation rate: a*(v-u)^b / {1 + h*a*(v-u)^b} 
 //	a		inverse of searching time	
 //	b		non-linear influence of speed difference
 //	h		average handling time for predation a prey
 //following three parameters determine the prey traits
 //	k		coefficient of foraging reward for prey (k*u is the reward)
-//	mu_a	basic mortality rate of active prey (not include the mortality by predation)
-//	mu_i	basic mortality rate of resting prey (mu_a >= mu_r)
+//	e		relative predation risk of resting prey to foraging ones
 //following two parameters determine the predator traits
-//	M		Vector of predation cost for predators
+//	C		Vector of predation cost for predators
 //	d		relative density of predator/prey
 // [[Rcpp::export]]
 Rcpp::List tss_probforage_optimize(
@@ -89,6 +88,19 @@ Rcpp::List tss_probforage_optimize(
 	);
 }
 
+//Optimization in prey-predator game model
+//	V,U		Vector of speed of predators and prey at each time step
+//following three parameters determine the predation rate: a*(v-u)^b / {1 + h*a*(v-u)^b} 
+//	a		inverse of searching time	
+//	b		non-linear influence of speed difference
+//	h		average handling time for predation a prey
+//following three parameters determine the prey traits
+//	k		coefficient of foraging reward for prey (k*u is the reward)
+//	e		relative predation risk of resting prey to foraging ones
+//following two parameters determine the predator traits
+//	C		Vector of predation cost for predators
+//	base_c	Basic metaboric cost for predators
+//	d		relative density of predator/prey
 // [[Rcpp::export]]
 Rcpp::List tss_ppgame_optimize(
 	Rcpp::NumericVector V,
