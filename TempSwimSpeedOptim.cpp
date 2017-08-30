@@ -88,3 +88,190 @@ Rcpp::List tss_probforage_optimize(
 		Rcpp::Named("PreyMortality1") = m1
 	);
 }
+
+// [[Rcpp::export]]
+Rcpp::List tss_ppgame_optimize(
+	Rcpp::NumericVector V,
+	Rcpp::NumericVector U,
+	Rcpp::NumericVector C,
+	double base_c,
+	double a,
+	double b,
+	double h,
+	double k,
+	double d,
+	double e
+){
+	using predation = tempss::probforage_predation;
+	using prey_fitness = tempss::exp_ratio_fitness;
+	using predator_fitness = tempss::linear_ratio_fitness;
+	using this_system = tempss::predator_prey_game_system<predation, prey_fitness, predator_fitness>;
+	using freq_state = tempss::freq_state;
+
+	this_system System(predation(a, b, h), prey_fitness(1.0, 0.0), predator_fitness(base_c), V.begin(), V.end(), U.begin(), U.end(), C.begin(), C.end(), d, e, k);
+
+	freq_state Prey;
+	freq_state Predator;
+	std::tie(Prey, Predator) = System();
+
+	double PreyW = System.get_prey_fitness(Prey, Predator);
+	double PredatorW = System.get_predator_fitness(Prey, Predator);
+
+	Rcpp::NumericVector PreyR(Prey.size());
+	Rcpp::NumericVector PreyM(Prey.size());
+	Rcpp::NumericVector PredatorR(Prey.size());
+	Rcpp::NumericVector PredatorC(Prey.size());
+	for(unsigned int i = 0; i < System.size(); ++i){
+		const auto& TimeInfo = System.at(i);
+		PreyR[i] = TimeInfo.prey_reward(Prey[i]);
+		PreyM[i] = TimeInfo.prey_mortality(Prey[i], Predator[i]);
+		PredatorR[i] = TimeInfo.predator_reward(Prey[i])*Predator[i];
+		PredatorC[i] = TimeInfo.predator_cost()*Predator[i];
+	}
+
+	return Rcpp::List::create(
+		Rcpp::Named("Prey") = Prey,
+		Rcpp::Named("PreyW") = PreyW,
+		Rcpp::Named("Predator") = Predator,
+		Rcpp::Named("PredatorW") = PredatorW,
+		Rcpp::Named("PreyR") = PreyR,
+		Rcpp::Named("PreyM") = PreyM,
+		Rcpp::Named("PredatorR") = PredatorR,
+		Rcpp::Named("PredatorC") = PredatorC
+	);
+}
+
+// [[Rcpp::export]]
+Rcpp::List tss_ppgame_optimize_hill_climb(
+	Rcpp::NumericVector V,
+	Rcpp::NumericVector U,
+	Rcpp::NumericVector C,
+	double base_c,
+	double a,
+	double b,
+	double h,
+	double k,
+	double d,
+	double e,
+	unsigned int StepNum
+){
+	using predation = tempss::probforage_predation;
+	using prey_fitness = tempss::exp_ratio_fitness;
+	using predator_fitness = tempss::linear_ratio_fitness;
+	using this_system = tempss::predator_prey_game_system<predation, prey_fitness, predator_fitness>;
+	using freq_state = tempss::freq_state;
+
+	this_system System(predation(a, b, h), prey_fitness(1.0, 0.0), predator_fitness(base_c), V.begin(), V.end(), U.begin(), U.end(), C.begin(), C.end(), d, e, k);
+
+	freq_state Prey;
+	freq_state Predator;
+	std::tie(Prey, Predator) = System.hill_climb(StepNum);
+
+	double PreyW = System.get_prey_fitness(Prey, Predator);
+	double PredatorW = System.get_predator_fitness(Prey, Predator);
+
+	Rcpp::NumericVector PreyR(Prey.size());
+	Rcpp::NumericVector PreyM(Prey.size());
+	Rcpp::NumericVector PredatorR(Prey.size());
+	Rcpp::NumericVector PredatorC(Prey.size());
+	for(unsigned int i = 0; i < System.size(); ++i){
+		const auto& TimeInfo = System.at(i);
+		PreyR[i] = TimeInfo.prey_reward(Prey[i]);
+		PreyM[i] = TimeInfo.prey_mortality(Prey[i], Predator[i]);
+		PredatorR[i] = TimeInfo.predator_reward(Prey[i])*Predator[i];
+		PredatorC[i] = TimeInfo.predator_cost()*Predator[i];
+	}
+
+	return Rcpp::List::create(
+		Rcpp::Named("Prey") = Prey,
+		Rcpp::Named("PreyW") = PreyW,
+		Rcpp::Named("Predator") = Predator,
+		Rcpp::Named("PredatorW") = PredatorW,
+		Rcpp::Named("PreyR") = PreyR,
+		Rcpp::Named("PreyM") = PreyM,
+		Rcpp::Named("PredatorR") = PredatorR,
+		Rcpp::Named("PredatorC") = PredatorC
+	);
+}
+
+// [[Rcpp::export]]
+Rcpp::List tss_ppgame_fitness(
+	Rcpp::NumericVector PreyStrategy,
+	Rcpp::NumericVector V,
+	Rcpp::NumericVector U,
+	Rcpp::NumericVector C,
+	double base_c,
+	double a,
+	double b,
+	double h,
+	double k,
+	double d,
+	double e
+){
+	using predation = tempss::probforage_predation;
+	using prey_fitness = tempss::exp_ratio_fitness;
+	using predator_fitness = tempss::linear_ratio_fitness;
+	using this_system = tempss::predator_prey_game_system<predation, prey_fitness, predator_fitness>;
+	using freq_state = tempss::freq_state;
+
+	this_system System(predation(a, b, h), prey_fitness(1.0, 0.0), predator_fitness(base_c), V.begin(), V.end(), U.begin(), U.end(), C.begin(), C.end(), d, e, k);
+
+	freq_state Prey(PreyStrategy.begin(), PreyStrategy.end());
+	freq_state Predator;
+	std::tie(Predator, std::ignore, std::ignore) = System.get_predator_strategy(Prey);
+
+	double PreyW = System.get_prey_fitness(Prey, Predator);
+	double PredatorW = System.get_predator_fitness(Prey, Predator);
+
+	Rcpp::NumericVector PreyR(Prey.size());
+	Rcpp::NumericVector PreyM(Prey.size());
+	Rcpp::NumericVector PredatorR(Prey.size());
+	Rcpp::NumericVector PredatorC(Prey.size());
+	for(unsigned int i = 0; i < System.size(); ++i){
+		const auto& TimeInfo = System.at(i);
+		PreyR[i] = TimeInfo.prey_reward(Prey[i]);
+		PreyM[i] = TimeInfo.prey_mortality(Prey[i], Predator[i]);
+		PredatorR[i] = TimeInfo.predator_reward(Prey[i])*Predator[i];
+		PredatorC[i] = TimeInfo.predator_cost()*Predator[i];
+	}
+
+	return Rcpp::List::create(
+		Rcpp::Named("Prey") = Prey,
+		Rcpp::Named("PreyW") = PreyW,
+		Rcpp::Named("Predator") = Predator,
+		Rcpp::Named("PredatorW") = PredatorW,
+		Rcpp::Named("PreyR") = PreyR,
+		Rcpp::Named("PreyM") = PreyM,
+		Rcpp::Named("PredatorR") = PredatorR,
+		Rcpp::Named("PredatorC") = PredatorC
+	);
+}
+
+// [[Rcpp::export]]
+Rcpp::NumericVector tss_ppgame_stability(
+	Rcpp::NumericVector PreyStrategy,
+	Rcpp::NumericVector V,
+	Rcpp::NumericVector U,
+	Rcpp::NumericVector C,
+	double base_c,
+	double a,
+	double b,
+	double h,
+	double k,
+	double d,
+	double e,
+	unsigned int MaxStep
+){
+	using predation = tempss::probforage_predation;
+	using prey_fitness = tempss::exp_ratio_fitness;
+	using predator_fitness = tempss::linear_ratio_fitness;
+	using this_system = tempss::predator_prey_game_system<predation, prey_fitness, predator_fitness>;
+	using freq_state = tempss::freq_state;
+
+	this_system System(predation(a, b, h), prey_fitness(1.0, 0.0), predator_fitness(base_c), V.begin(), V.end(), U.begin(), U.end(), C.begin(), C.end(), d, e, k);
+
+	freq_state Prey(PreyStrategy.begin(), PreyStrategy.end());
+	freq_state MutantPrey = System.evolutionary_stability(Prey, MaxStep);
+
+	return Rcpp::NumericVector(MutantPrey.begin(), MutantPrey.end());
+}
