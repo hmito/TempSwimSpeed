@@ -1,0 +1,3 @@
+[submodule "TempSwimSpeedOptim/hmLib"]
+	path = TempSwimSpeedOptim/hmLib
+	url = https://github.com/hmito/hmLib.git
