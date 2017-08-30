@@ -21,30 +21,34 @@
 Rcpp::List tss_probforage_optimize(
 	Rcpp::NumericVector V,
 	Rcpp::NumericVector U,
+	Rcpp::NumericVector C,
 	double a,
 	double b,
 	double h,
 	double k,
-	double rho_a,
-	double rho_i,
-	Rcpp::NumericVector M,
-	double d
+	double d,
+	double e
 ){
 	using predation = tempss::probforage_predation;
-	using prey_fitness = tempss::ratio_fitness;
-	using prey_reward = tempss::linear_prey_reward;
-	using this_system = tempss::optimizer_system<predation, prey_fitness>;
+	using prey_fitness = tempss::exp_ratio_fitness;
+	using predator_fitness = tempss::difference_fitness;
+	using this_system = tempss::stepdrdm_optimizer_system<prey_fitness, predator_fitness>;
+	using this_state = typename this_system::state;
+	using freq_state = tempss::freq_state;
 
-	this_system System(predation(a, b, h), prey_fitness(1.0, V.size()*rho_i), prey_reward(k), V.begin(), V.end(), U.begin(), U.end(), M.begin(), M.end(), rho_a - rho_i, d);
+	this_system System(predation(a, b, h), prey_fitness(1.0, 0.0), predator_fitness(), V.begin(), V.end(), U.begin(), U.end(), C.begin(), C.end(), d, e, k);
 
-	tempss::state vLower;
-	tempss::state vUpper;
-	std::tie(vLower,vUpper) = System();
+	this_state svLower;
+	this_state svUpper;
+	std::tie(svLower, svUpper) = System();
 
-	double PreyWL = System.get_prey_fitness(vLower);
-	double PreyWH = System.get_prey_fitness(vUpper);
-	double PredatorWL = System.get_predator_fitness(vLower);
-	double PredatorWH = System.get_predator_fitness(vUpper);
+	freq_state vLower = System.get_freq_state(svLower);
+	freq_state vUpper = System.get_freq_state(svUpper);
+
+	double PreyWL = System.get_prey_fitness(svLower);
+	double PreyWH = System.get_prey_fitness(svUpper);
+	double PredatorWL = System.get_predator_fitness(svLower);
+	double PredatorWH = System.get_predator_fitness(svUpper);
 
 	Rcpp::NumericVector PreyL(vLower.begin(), vLower.end());
 	Rcpp::NumericVector PreyH(vUpper.begin(), vUpper.end());
@@ -53,19 +57,19 @@ Rcpp::List tss_probforage_optimize(
 	Rcpp::NumericVector PredatorH(vLower.size());
 
 	Rcpp::NumericVector rf(vLower.size());
-	Rcpp::NumericVector pm1(vLower.size());
 	Rcpp::NumericVector Thr(vLower.size());
-	Rcpp::NumericVector drdm_f(vLower.size());
-	Rcpp::NumericVector drdm_1(vLower.size());
+	Rcpp::NumericVector m0(vLower.size());
+	Rcpp::NumericVector mF(vLower.size());
+	Rcpp::NumericVector m1(vLower.size());
 	for(unsigned int i = 0; i < System.size(); ++i){
 		const auto& TimeInfo = System.at(i);
-		PredatorL[i] = TimeInfo.predator_strategy(PreyL[i]);
-		PredatorH[i] = TimeInfo.predator_strategy(PreyH[i]);
+		PredatorL[i] = TimeInfo.predator_strategy(svLower[i]);
+		PredatorH[i] = TimeInfo.predator_strategy(svUpper[i]);
 		Thr[i] = TimeInfo.f_threshold();
 		rf[i] = TimeInfo.prey_reward(0);
-		pm1[i] = TimeInfo.prey_predation_mortality(1);
-		drdm_f[i] = System.at(i).prey_drdm0();
-		drdm_1[i] = System.at(i).prey_drdm1();
+		m0[i] = TimeInfo.prey_mortality(0);
+		mF[i] = TimeInfo.prey_mortality(1);
+		m1[i] = TimeInfo.prey_mortality(2);
 	}
 
 	return Rcpp::List::create(
@@ -79,8 +83,8 @@ Rcpp::List tss_probforage_optimize(
 		Rcpp::Named("PredatorWH") = PredatorWH,
 		Rcpp::Named("ThresholdPreyFreq") = Thr,
 		Rcpp::Named("PreyReward") = rf,
-		Rcpp::Named("PredationMortality_1") = pm1,
-		Rcpp::Named("drdm_f") = drdm_f,
-		Rcpp::Named("drdm_1") = drdm_1
+		Rcpp::Named("PreyMortality0") = m0,
+		Rcpp::Named("PreyMortalityF") = mF,
+		Rcpp::Named("PreyMortality1") = m1
 	);
 }

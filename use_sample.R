@@ -17,18 +17,17 @@ V = vmin + (vmax - vmin)*sin(pi*t/24)^n
 U = umin + (umax - umin)*sin(pi*t/24)
 
 #following three parameters determine the predation rate: a*(v-u)^b / {1 + h*a*(v-u)^b} 
-a = 0.5		#inverse of searching time	
+a = 1		#inverse of searching time	
 b = 2.0		#non-linear influence of speed difference
 h = 2.0		#handling time for predation a prey
 
 #following three parameters determine the prey traits
-k = 0.1				#coefficient of foraging reward for prey (k*u is the reward)
-rho_a = 0.0010	#basic mortality rate of active prey (not include the mortality by predation)
-rho_i = 0.0005	#basic mortality rate of inactive prey (mu_a >= mu_i)
-
+k = 0.1		#coefficient of foraging reward for prey (k*u is the reward)
+e = 0.3		#relative risk of predation for resting prey
+	
 #following two parameters determine the predator traits
 M = rep(0.01,length=length(t))	#relative density of predator/prey
-d = 0.02		#predation cost for predators
+d = 0.001		#predation cost for predators
 
 #Optimization
 #Because prey have discrete choice (f = 0, f* or 1 where f* is the threshold prey frequency for predators activity),
@@ -47,14 +46,25 @@ d = 0.02		#predation cost for predators
 #	PredationMortality_1	Mortality rate of prey caused by predation when f=1
 #	drdm_f	Performance of foraging for prey when f < f*
 #	drdm_1	Performance of foraging for prey when f = 1
-Ans = tss_probforage_optimize(V, U,a, b, h, k, rho_a, rho_i, M, d)
+Ans = tss_probforage_optimize(V, U, M, a, b, h, k, d, e)
+
+Ans$ThresholdPreyFreq
 
 #Optimal prey behaviour f (optimal predator behaviour is 1 if f=1, or zero otherwise)
 #	grey color is the difference of upper and lower optimal points.
 barplot(rbind(Ans$PreyL,Ans$PreyH-Ans$PreyL),xlab="time")
+points(1:length(Ans$PreyL)+0.5,Ans$ThresholdPreyFreq)
+
+barplot(rbind(Ans$PredatorL,Ans$PredatorH-Ans$PredatorL),xlab="time")
+Ans$PreyWH
+Ans$PreyWL
+Ans$PredatorWH
+Ans$PredatorWL
 
 #Mortality rate at each time step
-plot(Ans$PredationMortality_1,type="b",pch=19,xlab="time",ylab= "predation risk")
+plot(U/Ans$PreyMortality0,type="b",pch=19,xlab="time",ylab= "predation risk")
+plot(U/Ans$PreyMortalityF,type="b",pch=19,xlab="time",ylab= "predation risk")
+plot(U/Ans$PreyMortality1,type="b",pch=19,xlab="time",ylab= "predation risk")
 
 #Performance (i.e., reward/mortality) at each time step (blue:f < f*, red: f >= f*)
 plot(Ans$drdm_f,type="b",ylim=c(0,max(Ans$drdm_f)),pch=19,col="blue",xlab="time",ylab= "dr/dm")
