@@ -528,6 +528,9 @@ namespace tempss{
 			if(drdm > 1.0e100)return true;
 			return (base_m+m)*alpha*std::exp(-alpha*r)*drdm > 1 - std::exp(-alpha*r);
 		}
+		double minimum_drdm(double r, double m){
+			return (1 - std::exp(-alpha*r)) / ((base_m + m)*alpha*std::exp(-alpha*r) + std::numeric_limits<double>::min());
+		}
 	};
 	//fitness reward-mortality ratio with basic mortality rate: {1 - alpha*exp(-beta*r)} / {m + base_m}
 	struct linear_ratio_fitness{
@@ -541,6 +544,9 @@ namespace tempss{
 		bool is_increasing(double r, double m, double drdm)const{
 			return (base_m + m)*drdm > r;
 		}
+		double minimum_drdm(double r, double m){
+			return r / (base_m + m);
+		}
 	};
 	//fitness reward-mortality ratio with basic mortality rate: {1 - alpha*exp(-beta*r)} / {m + base_m}
 	struct difference_fitness{
@@ -550,6 +556,9 @@ namespace tempss{
 		}
 		bool is_increasing(double r, double m, double drdm)const{
 			return drdm > 1;
+		}
+		double minimum_drdm(double r, double m){
+			return 1.0;
 		}
 	};
 }
