@@ -1,8 +1,5 @@
-######################################
-#
-#   Prey optimizing game 
-#
-######################################
+#TempSwimSpeed_v1_01
+#   Predator 
 
 library("Rcpp")
 library("BH")
@@ -52,7 +49,7 @@ d = 0.001		#predation cost for predators
 #	PreyMortality0	Mortality rate of prey caused by predation when f=0
 #	PreyMortalityF	ortality rate of prey caused by predation when f=f*
 #	PreyMortality1	ortality rate of prey caused by predation f=1
-Ans = tss_probforage_optimize(V, U, C, a, b, h, k, d, e)
+Ans = tss_probforage_energygain_optimize(V, U, C, a, b, h, k, d, e)
 
 #Optimal prey behaviour f
 #	grey color is the difference of upper and lower optimal points.
@@ -67,8 +64,3 @@ barplot(rbind(Ans$PredatorL,Ans$PredatorH-Ans$PredatorL),xlab="time")
 plot(Ans$PreyMortality0,type="b",pch=19,xlab="time",ylab= "predation risk")
 plot(Ans$PreyMortalityF,type="b",pch=19,xlab="time",ylab= "predation risk")
 plot(Ans$PreyMortality1,type="b",pch=19,xlab="time",ylab= "predation risk")
-
-#Performance (i.e., reward/mortality) at each time step (blue:f < f*, red: f >= f*)
-plot(Ans$drdm_f,type="b",ylim=c(0,max(Ans$drdm_f)),pch=19,col="blue",xlab="time",ylab= "dr/dm")
-par(new=TRUE)
-plot(Ans$drdm_1,type="b",ylim=c(0,max(Ans$drdm_f)),pch=19,col="red",xlab="time",ylab= "dr/dm")

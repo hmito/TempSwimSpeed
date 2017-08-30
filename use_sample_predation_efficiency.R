@@ -1,8 +1,5 @@
-######################################
-#
-#   Predator-prey game 
-#
-######################################
+#TempSwimSpeed_v1_01
+#   Predator efficiency 
 
 library("Rcpp")
 library("BH")
@@ -46,7 +43,7 @@ d = 0.01									#relative density of predator/prey
 #	PreyM			Mortality rate of prey
 #	PredatorR	Reward (Predation benefit) of predators
 #	PredatorC	Metaboric cost of predators
-Ans = tss_ppgame_optimize(V, U, C, base_c, a, b, h, k, d, e)
+Ans = tss_probforage_predeff_optimize(V, U, C, base_c, a, b, h, k, d, e)
 
 #Optimal prey behaviour f
 barplot(Ans$Prey,xlab="time")

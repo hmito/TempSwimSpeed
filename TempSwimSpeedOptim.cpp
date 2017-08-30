@@ -1,10 +1,12 @@
+//TempSwimSpeed_v1_01
+//
 //[[Rcpp::plugins(cpp11)]]
 //[[Rcpp::depends(BH)]]
 
 #include <Rcpp.h>
 #include "TempSwimSpeedOptim/TempSwimSpeedOptim.hpp"
 
-//probability foraging optimization in prey-response game model
+//probability foraging optimization of energy gain
 //	V,U		Vector of speed of predators and prey at each time step
 //following three parameters determine the predation rate: a*(v-u)^b / {1 + h*a*(v-u)^b} 
 //	a		inverse of searching time	
@@ -17,7 +19,7 @@
 //	C		Vector of predation cost for predators
 //	d		relative density of predator/prey
 // [[Rcpp::export]]
-Rcpp::List tss_probforage_optimize(
+Rcpp::List tss_probforage_energygain_optimize(
 	Rcpp::NumericVector V,
 	Rcpp::NumericVector U,
 	Rcpp::NumericVector C,
@@ -88,7 +90,7 @@ Rcpp::List tss_probforage_optimize(
 	);
 }
 
-//Optimization in prey-predator game model
+//probability foraging optimization of predation efficiency
 //	V,U		Vector of speed of predators and prey at each time step
 //following three parameters determine the predation rate: a*(v-u)^b / {1 + h*a*(v-u)^b} 
 //	a		inverse of searching time	
@@ -102,7 +104,7 @@ Rcpp::List tss_probforage_optimize(
 //	base_c	Basic metaboric cost for predators
 //	d		relative density of predator/prey
 // [[Rcpp::export]]
-Rcpp::List tss_ppgame_optimize(
+Rcpp::List tss_probforage_predeff_optimize(
 	Rcpp::NumericVector V,
 	Rcpp::NumericVector U,
 	Rcpp::NumericVector C,
@@ -154,7 +156,7 @@ Rcpp::List tss_ppgame_optimize(
 }
 
 // [[Rcpp::export]]
-Rcpp::List tss_ppgame_optimize_hill_climb(
+Rcpp::List tss_probforage_predeff_optimize_hillclimb(
 	Rcpp::NumericVector V,
 	Rcpp::NumericVector U,
 	Rcpp::NumericVector C,
@@ -207,7 +209,7 @@ Rcpp::List tss_ppgame_optimize_hill_climb(
 }
 
 // [[Rcpp::export]]
-Rcpp::List tss_ppgame_fitness(
+Rcpp::List tss_probforage_predeff_fitness(
 	Rcpp::NumericVector PreyStrategy,
 	Rcpp::NumericVector V,
 	Rcpp::NumericVector U,
@@ -260,7 +262,7 @@ Rcpp::List tss_ppgame_fitness(
 }
 
 // [[Rcpp::export]]
-Rcpp::NumericVector tss_ppgame_stability(
+Rcpp::NumericVector tss_probforage_predeff_stability(
 	Rcpp::NumericVector PreyStrategy,
 	Rcpp::NumericVector V,
 	Rcpp::NumericVector U,
