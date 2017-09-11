@@ -8,27 +8,26 @@
 
 //probability foraging optimization of energy gain
 //	V,U		Vector of speed of predators and prey at each time step
-//following three parameters determine the predation rate: a*(v-u)^b / {1 + h*a*(v-u)^b} 
-//	a		inverse of searching time	
+//	K		Food availability for prey, i.e., the obtained reward will be R*U
+//	C		Vector of metabolic predation cost for predators
+//	L		Vector of influence of brightness on the predation rate
+//	d		relative density of predator/prey
+//	e		relative predation risk of resting prey to foraging ones
+//following two parameters determine the predation rate: a*(v-u)^b / {1 + h*a*(v-u)^b}  
+//	a		coefficienct of the predation rate (now it is fixed to one)
 //	b		non-linear influence of speed difference
 //	h		average handling time for predation a prey
-//following three parameters determine the prey traits
-//	k		coefficient of foraging reward for prey (k*u is the reward)
-//	e		relative predation risk of resting prey to foraging ones
-//following two parameters determine the predator traits
-//	C		Vector of predation cost for predators
-//	d		relative density of predator/prey
 // [[Rcpp::export]]
 Rcpp::List tss_probforage_energygain_optimize(
 	Rcpp::NumericVector V,
 	Rcpp::NumericVector U,
+	Rcpp::NumericVector K,
 	Rcpp::NumericVector C,
-	double a,
-	double b,
-	double h,
-	double k,
+	Rcpp::NumericVector L,
 	double d,
-	double e
+	double e,
+	double b,
+	double h
 ){
 	using predation = tempss::probforage_predation;
 	using prey_fitness = tempss::exp_ratio_fitness;
@@ -37,7 +36,7 @@ Rcpp::List tss_probforage_energygain_optimize(
 	using this_state = typename this_system::state;
 	using freq_state = tempss::freq_state;
 
-	this_system System(predation(a, b, h), prey_fitness(1.0, 0.0), predator_fitness(), V.begin(), V.end(), U.begin(), U.end(), C.begin(), C.end(), d, e, k);
+	this_system System(predation(1.0, b, h), prey_fitness(1.0, 0.0), predator_fitness(), V.begin(), V.end(), U.begin(), U.end(), K.begin(), K.end(), C.begin(), C.end(), L.begin(), L.end(), d, e);
 
 	this_state svLower;
 	this_state svUpper;
@@ -88,204 +87,4 @@ Rcpp::List tss_probforage_energygain_optimize(
 		Rcpp::Named("PreyMortalityF") = mF,
 		Rcpp::Named("PreyMortality1") = m1
 	);
-}
-
-//probability foraging optimization of predation efficiency
-//	V,U		Vector of speed of predators and prey at each time step
-//following three parameters determine the predation rate: a*(v-u)^b / {1 + h*a*(v-u)^b} 
-//	a		inverse of searching time	
-//	b		non-linear influence of speed difference
-//	h		average handling time for predation a prey
-//following three parameters determine the prey traits
-//	k		coefficient of foraging reward for prey (k*u is the reward)
-//	e		relative predation risk of resting prey to foraging ones
-//following two parameters determine the predator traits
-//	C		Vector of predation cost for predators
-//	base_c	Basic metaboric cost for predators
-//	d		relative density of predator/prey
-// [[Rcpp::export]]
-Rcpp::List tss_probforage_predeff_optimize(
-	Rcpp::NumericVector V,
-	Rcpp::NumericVector U,
-	Rcpp::NumericVector C,
-	double base_c,
-	double a,
-	double b,
-	double h,
-	double k,
-	double d,
-	double e
-){
-	using predation = tempss::probforage_predation;
-	using prey_fitness = tempss::exp_ratio_fitness;
-	using predator_fitness = tempss::linear_ratio_fitness;
-	using this_system = tempss::predator_prey_game_system<predation, prey_fitness, predator_fitness>;
-	using freq_state = tempss::freq_state;
-
-	this_system System(predation(a, b, h), prey_fitness(1.0, 0.0), predator_fitness(base_c), V.begin(), V.end(), U.begin(), U.end(), C.begin(), C.end(), d, e, k);
-
-	freq_state Prey;
-	freq_state Predator;
-	std::tie(Prey, Predator) = System();
-
-	double PreyW = System.get_prey_fitness(Prey, Predator);
-	double PredatorW = System.get_predator_fitness(Prey, Predator);
-
-	Rcpp::NumericVector PreyR(Prey.size());
-	Rcpp::NumericVector PreyM(Prey.size());
-	Rcpp::NumericVector PredatorR(Prey.size());
-	Rcpp::NumericVector PredatorC(Prey.size());
-	for(unsigned int i = 0; i < System.size(); ++i){
-		const auto& TimeInfo = System.at(i);
-		PreyR[i] = TimeInfo.prey_reward(Prey[i]);
-		PreyM[i] = TimeInfo.prey_mortality(Prey[i], Predator[i]);
-		PredatorR[i] = TimeInfo.predator_reward(Prey[i])*Predator[i];
-		PredatorC[i] = TimeInfo.predator_cost()*Predator[i];
-	}
-
-	return Rcpp::List::create(
-		Rcpp::Named("Prey") = Prey,
-		Rcpp::Named("PreyW") = PreyW,
-		Rcpp::Named("Predator") = Predator,
-		Rcpp::Named("PredatorW") = PredatorW,
-		Rcpp::Named("PreyR") = PreyR,
-		Rcpp::Named("PreyM") = PreyM,
-		Rcpp::Named("PredatorR") = PredatorR,
-		Rcpp::Named("PredatorC") = PredatorC
-	);
-}
-
-// [[Rcpp::export]]
-Rcpp::List tss_probforage_predeff_optimize_hillclimb(
-	Rcpp::NumericVector V,
-	Rcpp::NumericVector U,
-	Rcpp::NumericVector C,
-	double base_c,
-	double a,
-	double b,
-	double h,
-	double k,
-	double d,
-	double e,
-	unsigned int StepNum
-){
-	using predation = tempss::probforage_predation;
-	using prey_fitness = tempss::exp_ratio_fitness;
-	using predator_fitness = tempss::linear_ratio_fitness;
-	using this_system = tempss::predator_prey_game_system<predation, prey_fitness, predator_fitness>;
-	using freq_state = tempss::freq_state;
-
-	this_system System(predation(a, b, h), prey_fitness(1.0, 0.0), predator_fitness(base_c), V.begin(), V.end(), U.begin(), U.end(), C.begin(), C.end(), d, e, k);
-
-	freq_state Prey;
-	freq_state Predator;
-	std::tie(Prey, Predator) = System.hill_climb(StepNum);
-
-	double PreyW = System.get_prey_fitness(Prey, Predator);
-	double PredatorW = System.get_predator_fitness(Prey, Predator);
-
-	Rcpp::NumericVector PreyR(Prey.size());
-	Rcpp::NumericVector PreyM(Prey.size());
-	Rcpp::NumericVector PredatorR(Prey.size());
-	Rcpp::NumericVector PredatorC(Prey.size());
-	for(unsigned int i = 0; i < System.size(); ++i){
-		const auto& TimeInfo = System.at(i);
-		PreyR[i] = TimeInfo.prey_reward(Prey[i]);
-		PreyM[i] = TimeInfo.prey_mortality(Prey[i], Predator[i]);
-		PredatorR[i] = TimeInfo.predator_reward(Prey[i])*Predator[i];
-		PredatorC[i] = TimeInfo.predator_cost()*Predator[i];
-	}
-
-	return Rcpp::List::create(
-		Rcpp::Named("Prey") = Prey,
-		Rcpp::Named("PreyW") = PreyW,
-		Rcpp::Named("Predator") = Predator,
-		Rcpp::Named("PredatorW") = PredatorW,
-		Rcpp::Named("PreyR") = PreyR,
-		Rcpp::Named("PreyM") = PreyM,
-		Rcpp::Named("PredatorR") = PredatorR,
-		Rcpp::Named("PredatorC") = PredatorC
-	);
-}
-
-// [[Rcpp::export]]
-Rcpp::List tss_probforage_predeff_fitness(
-	Rcpp::NumericVector PreyStrategy,
-	Rcpp::NumericVector V,
-	Rcpp::NumericVector U,
-	Rcpp::NumericVector C,
-	double base_c,
-	double a,
-	double b,
-	double h,
-	double k,
-	double d,
-	double e
-){
-	using predation = tempss::probforage_predation;
-	using prey_fitness = tempss::exp_ratio_fitness;
-	using predator_fitness = tempss::linear_ratio_fitness;
-	using this_system = tempss::predator_prey_game_system<predation, prey_fitness, predator_fitness>;
-	using freq_state = tempss::freq_state;
-
-	this_system System(predation(a, b, h), prey_fitness(1.0, 0.0), predator_fitness(base_c), V.begin(), V.end(), U.begin(), U.end(), C.begin(), C.end(), d, e, k);
-
-	freq_state Prey(PreyStrategy.begin(), PreyStrategy.end());
-	freq_state Predator;
-	std::tie(Predator, std::ignore, std::ignore) = System.get_predator_strategy(Prey);
-
-	double PreyW = System.get_prey_fitness(Prey, Predator);
-	double PredatorW = System.get_predator_fitness(Prey, Predator);
-
-	Rcpp::NumericVector PreyR(Prey.size());
-	Rcpp::NumericVector PreyM(Prey.size());
-	Rcpp::NumericVector PredatorR(Prey.size());
-	Rcpp::NumericVector PredatorC(Prey.size());
-	for(unsigned int i = 0; i < System.size(); ++i){
-		const auto& TimeInfo = System.at(i);
-		PreyR[i] = TimeInfo.prey_reward(Prey[i]);
-		PreyM[i] = TimeInfo.prey_mortality(Prey[i], Predator[i]);
-		PredatorR[i] = TimeInfo.predator_reward(Prey[i])*Predator[i];
-		PredatorC[i] = TimeInfo.predator_cost()*Predator[i];
-	}
-
-	return Rcpp::List::create(
-		Rcpp::Named("Prey") = Prey,
-		Rcpp::Named("PreyW") = PreyW,
-		Rcpp::Named("Predator") = Predator,
-		Rcpp::Named("PredatorW") = PredatorW,
-		Rcpp::Named("PreyR") = PreyR,
-		Rcpp::Named("PreyM") = PreyM,
-		Rcpp::Named("PredatorR") = PredatorR,
-		Rcpp::Named("PredatorC") = PredatorC
-	);
-}
-
-// [[Rcpp::export]]
-Rcpp::NumericVector tss_probforage_predeff_stability(
-	Rcpp::NumericVector PreyStrategy,
-	Rcpp::NumericVector V,
-	Rcpp::NumericVector U,
-	Rcpp::NumericVector C,
-	double base_c,
-	double a,
-	double b,
-	double h,
-	double k,
-	double d,
-	double e,
-	unsigned int MaxStep
-){
-	using predation = tempss::probforage_predation;
-	using prey_fitness = tempss::exp_ratio_fitness;
-	using predator_fitness = tempss::linear_ratio_fitness;
-	using this_system = tempss::predator_prey_game_system<predation, prey_fitness, predator_fitness>;
-	using freq_state = tempss::freq_state;
-
-	this_system System(predation(a, b, h), prey_fitness(1.0, 0.0), predator_fitness(base_c), V.begin(), V.end(), U.begin(), U.end(), C.begin(), C.end(), d, e, k);
-
-	freq_state Prey(PreyStrategy.begin(), PreyStrategy.end());
-	freq_state MutantPrey = System.evolutionary_stability(Prey, MaxStep);
-
-	return Rcpp::NumericVector(MutantPrey.begin(), MutantPrey.end());
 }

@@ -185,13 +185,13 @@ namespace hmLib {
 }
 namespace tempss{
 	namespace detail{
-		template<typename T, typename eT, typename ans_type = decltype(std::declval<eT>().predation_threshold(1.0, 1.0, 1.0))>
-		double find_predation_threshold_impl(const T& val, double v, double u, double c, const eT& eval){
-			return val.predation_threshold(v, u, c);
+		template<typename T, typename eT, typename ans_type = decltype(std::declval<eT>().predation_threshold(1.0, 1.0, 1.0, 1.0))>
+		double find_predation_threshold_impl(const T& val, double v, double u, double l, double c, const eT& eval){
+			return val.predation_threshold(v, u, l, c);
 		}
 		template<typename T>
-		double find_predation_threshold_impl(const T& val, double v, double u, double c, ...){
-			auto Func = [=](double f) {return c - f*val(f, v, u); };
+		double find_predation_threshold_impl(const T& val, double v, double u, double l, double c, ...){
+			auto Func = [=](double f) {return c - f*val(f, v, u, l); };
 			double v1 = Func(1);
 			double v0 = Func(0);
 			if(v1 < 0 && v0 < 0)return 0;
@@ -201,7 +201,7 @@ namespace tempss{
 		}
 	}
 	template<typename predation_rate>
-	double find_predation_threshold(predation_rate&& Predation_, double v, double u, double c){ return detail::find_predation_threshold_impl(Predation_, v, u, c, Predation_); }
+	double find_predation_threshold(predation_rate&& Predation_, double v, double u, double l, double c){ return detail::find_predation_threshold_impl(Predation_, v, u, l, c, Predation_); }
 
 	namespace detail{
 		template<typename T, typename eT, typename ans_type = decltype(std::declval<eT>().is_increasing(1.0, 1.0, 1.0))>
@@ -230,10 +230,11 @@ namespace tempss{
 		private://given parameters
 			double v;			//speed of predator
 			double u;			//speed of prey
+			double k;			//foraging performance of prey, i.e., f*k*u is the obtained reward
 			double c;			//metaboric cost of predator
+			double l;			//predation rate
 			double d;			//relative density of predator/prey
 			double e;			//relative risk of predation for resting prey
-			double r;			//foraging performance of prey, i.e., f*r*u is the obtained reward
 		private://calculated parameters
 			double f_thr;		//thrsholf f of predator foraging
 			double p0;
@@ -247,31 +248,32 @@ namespace tempss{
 			double m1;			//mortality under f=1
 		public:
 			template<typename predation>
-			time_info(const predation& Predation_, double v_, double u_, double c_, double d_, double e_, double r_)
+			time_info(const predation& Predation_, double v_, double u_, double k_, double c_, double l_, double d_, double e_)
 				: v(v_)
 				, u(u_)
+				, k(k_)
 				, c(c_)
+				, l(l_)
 				, d(d_)
-				, e(e_)
-				, r(r_){
+				, e(e_){
 
 				//necessary effective fraction of prey (i.e., f + r*(1-f))
-				double pf_thr = find_predation_threshold(Predation_, v, u, c);
+				double pf_thr = find_predation_threshold(Predation_, v, u, l, c);
 
 				if(pf_thr <= e)f_thr = -1e-10;
 				else f_thr = std::min((pf_thr - e) / (1 - e + std::numeric_limits<double>::min()), 1.0);
 
 				if(f_thr < 0){
 					// xF == x0
-					p0 = Predation_(e, v, u);
-					p1 = Predation_(1, v, u);
+					p0 = Predation_(e, v, u, l);
+					p1 = Predation_(1, v, u, l);
 					pF = p0;
 					m0 = p0 * d / (e + std::numeric_limits<double>::min());
 					m1 = p1 * d / (1 + std::numeric_limits<double>::min());
 					mF = m0;
 					r0 = 0;
-					r1 = r*u;
-					rF = r0;
+					r1 = k*u;
+					rF = 0;
 				} else if(f_thr >= 1.0){
 					// xF == x1
 					p0 = 0.0;
@@ -281,18 +283,18 @@ namespace tempss{
 					m1 = 0.0;
 					mF = m1;
 					r0 = 0;
-					r1 = r*u;
-					rF = r1;
+					r1 = k*u;
+					rF = k*u;
 				} else{
 					p0 = 0.0;
-					p1 = Predation_(1, v, u);
+					p1 = Predation_(1, v, u, l);
 					pF = 0.0;
 					m0 = 0.0;
 					m1 = p1 * d / (1.0 + std::numeric_limits<double>::min());
 					mF = 0.0;
 					r0 = 0;
-					r1 = r*u;
-					rF = r*u*f_thr;
+					r1 = k*u;
+					rF = k*u*f_thr;
 				}
 			}
 		public:
@@ -335,17 +337,25 @@ namespace tempss{
 		container Container;
 	public:
 		template<typename predation, typename iterator>
-		stepdrdm_optimizer_system(predation Predation_, prey_fitness PreyFitness_, predator_fitness PredatorFitness_, iterator VBeg, iterator VEnd, iterator UBeg, iterator UEnd, iterator CBeg, iterator CEnd, double d_, double e_, double r_)
+		stepdrdm_optimizer_system(predation Predation_, prey_fitness PreyFitness_, predator_fitness PredatorFitness_, 
+			iterator VBeg, iterator VEnd, 
+			iterator UBeg, iterator UEnd, 
+			iterator KBeg, iterator KEnd, 
+			iterator CBeg, iterator CEnd,
+			iterator LBeg, iterator LEnd, 
+			double d_, double e_)
 			: PreyFitness(std::move(PreyFitness_))
 			, PredatorFitness(std::move(PredatorFitness_)){
 			if(std::distance(VBeg, VEnd) != std::distance(UBeg, UEnd)
+				|| std::distance(VBeg, VEnd) != std::distance(KBeg, KEnd)
 				|| std::distance(VBeg, VEnd) != std::distance(CBeg, CEnd)
-			){
+				|| std::distance(VBeg, VEnd) != std::distance(LBeg, LEnd)
+				){
 				throw std::exception();
 			}
 
-			for (; VBeg != VEnd; ++VBeg, ++UBeg, ++CBeg) {
-				Container.emplace_back(Predation_, *VBeg, *UBeg, *CBeg, d_, e_, r_);
+			for (; VBeg != VEnd; ++VBeg, ++UBeg, ++KBeg, ++CBeg, ++LBeg) {
+				Container.emplace_back(Predation_, *VBeg, *UBeg, *KBeg, *CBeg, *LBeg, d_, e_);
 			}
 		}
 		std::pair<state,state> operator()(void)const{
@@ -364,7 +374,7 @@ namespace tempss{
 				}
 			}
 
-//			std::sort(Data.begin(), Data.end(), [](const data_t& v1, const data_t& v2){return std::get<1>(v1) > std::get<1>(v2); });
+			//std::sort(Data.begin(), Data.end(), [](const data_t& v1, const data_t& v2){return std::get<1>(v1) > std::get<1>(v2); });
 
 			state Lower(Container.size(), 0);
 			state Upper(Container.size(), 0);
@@ -699,9 +709,9 @@ namespace tempss{
 			, b(b_)
 			, h(h_){
 		}
-		double operator()(double pf, double v, double u) const{
+		double operator()(double pf, double v, double u, double l) const{
 			if(pf <= 0 || v <= 0 || v<=u)return 0.0;
-			double gamma = a*std::pow(v - u, b);
+			double gamma = a*l*std::pow(v - u, b);
 			return gamma * pf / (1 + gamma*pf*h);
 		}
 	};
