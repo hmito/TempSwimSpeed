@@ -61,6 +61,8 @@ Rcpp::List tss_probforage_energygain_optimize(
 	Rcpp::NumericVector m0(vLower.size());
 	Rcpp::NumericVector mF(vLower.size());
 	Rcpp::NumericVector m1(vLower.size());
+	Rcpp::NumericVector PR(vLower.size());
+	Rcpp::NumericVector PC(vLower.size());
 	for(unsigned int i = 0; i < System.size(); ++i){
 		const auto& TimeInfo = System.at(i);
 		PredatorL[i] = TimeInfo.predator_strategy(svLower[i]);
@@ -70,21 +72,21 @@ Rcpp::List tss_probforage_energygain_optimize(
 		m0[i] = TimeInfo.prey_mortality(0);
 		mF[i] = TimeInfo.prey_mortality(1);
 		m1[i] = TimeInfo.prey_mortality(2);
+		PR[i] = TimeInfo.predator_reward(2);
+		PC[i] = TimeInfo.predator_cost();
 	}
 
 	return Rcpp::List::create(
-		Rcpp::Named("PreyL") = PreyL,
-		Rcpp::Named("PreyH") = PreyH,
-		Rcpp::Named("PreyWL") = PreyWL,
-		Rcpp::Named("PreyWH") = PreyWH,
-		Rcpp::Named("PredatorL") = PredatorL,
-		Rcpp::Named("PredatorH") = PredatorH,
-		Rcpp::Named("PredatorWL") = PredatorWL,
-		Rcpp::Named("PredatorWH") = PredatorWH,
+		Rcpp::Named("Prey") = PreyWL>PreyWH? PreyL: PreyH,
+		Rcpp::Named("Predator") = PreyWL>PreyWH? PredatorL: PredatorH,
+		Rcpp::Named("PreyW") = PreyWL>PreyWH? PredatorL: PredatorH,
+		Rcpp::Named("PredatorW") = PreyWL>PreyWH? PredatorWL: PredatorWH,
 		Rcpp::Named("ThresholdPreyFreq") = Thr,
 		Rcpp::Named("PreyReward") = rf,
 		Rcpp::Named("PreyMortality0") = m0,
 		Rcpp::Named("PreyMortalityF") = mF,
-		Rcpp::Named("PreyMortality1") = m1
+		Rcpp::Named("PreyMortality1") = m1,
+		Rcpp::Named("PredatorReward1") = PR,
+		Rcpp::Named("PredatorCost") = PC
 	);
 }
