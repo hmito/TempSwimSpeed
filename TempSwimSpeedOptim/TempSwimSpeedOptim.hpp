@@ -266,8 +266,8 @@ namespace tempss{
 				if(f_thr < 0){
 					// xF == x0
 					p0 = Predation_(e, v, u, l);
-					p1 = Predation_(1, v, u, l);
 					pF = p0;
+					p1 = Predation_(1, v, u, l);
 					m0 = p0 * d / (e + std::numeric_limits<double>::min());
 					m1 = p1 * d / (1 + std::numeric_limits<double>::min());
 					mF = m0;
@@ -277,8 +277,8 @@ namespace tempss{
 				} else if(f_thr >= 1.0){
 					// xF == x1
 					p0 = 0.0;
+					pF = 0.0;
 					p1 = 0.0;
-					pF = p1;
 					m0 = 0.0;
 					m1 = 0.0;
 					mF = m1;
@@ -287,8 +287,8 @@ namespace tempss{
 					rF = k*u;
 				} else{
 					p0 = 0.0;
-					p1 = Predation_(1, v, u, l);
 					pF = 0.0;
+					p1 = Predation_(1, v, u, l);
 					m0 = 0.0;
 					m1 = p1 * d / (1.0 + std::numeric_limits<double>::min());
 					mF = 0.0;
@@ -449,251 +449,6 @@ namespace tempss{
 				y.push_back(Container.at(i).prey_strategy(x[i]));
 			}
 			return y;
-		}
-	};
-
-	template<typename predation_, typename prey_fitness_, typename predator_fitness_>
-	struct predator_prey_game_system{
-		using predation = predation_;
-		using prey_fitness = prey_fitness_;
-		using predator_fitness = predator_fitness_;
-		using state_element = unsigned char;
-		using state = freq_state;
-		using mode = std::vector<unsigned char>;
-	private:
-		struct time_info{
-		private:
-			const predation& Predation;
-		private://given parameters
-			double v;			//speed of predator
-			double u;			//speed of prey
-			double c;			//metaboric cost of predator
-			double d;			//relative density of predator/prey
-			double e;			//relative risk of predation for resting prey
-			double r;			//foraging performance of prey, i.e., f*r*u is the obtained reward
-		public:
-			time_info(const predation& Predation_, double v_, double u_, double c_, double d_, double e_, double r_)
-				: Predation(Predation_)
-				, v(v_)
-				, u(u_)
-				, c(c_)
-				, d(d_)
-				, e(e_)
-				, r(r_){
-			}
-		public:
-			double predator_reward(double f)const{
-				return Predation(f + e*(1 - f), v, u);
-			}
-			double predator_cost()const{ return c; }
-			double prey_reward(double f)const{
-				return r*f;
-			}
-			double prey_mortality(double f, double p)const{
-				if(p < 1.0)return 0.0;
-				return Predation(f + e*(1 - f), v, u)*d;
-			}
-			double prey_threshold_freq(double PredatorDRDC)const{
-				auto Func = [this, PredatorDRDC](double f){return PredatorDRDC*c - Predation(f + e*(1 - f), v, u); };
-				if(Func(0.0) < 0)return 0.0;
-				if(Func(1.0) > 0)return 1.0;
-				auto Ans = boost::math::tools::bisect(Func, 0.0, 1.0, boost::math::tools::eps_tolerance<double>(10));
-				return (Ans.first + Ans.second) / 2.0;
-			}
-		};
-		using container = std::vector<time_info >;
-	public:
-		using iterator = typename container::iterator;
-		using const_iterator = typename container::const_iterator;
-	private:
-		struct brute_force_mutate{
-			bool operator()(mode& x){
-				for(unsigned int p = 0; p < x.size(); ++p){
-					if(x.at(p) < 2){
-						++(x.at(p));
-						return true;
-					} else{
-						x.at(p) = 0;
-					}
-				}
-				return false;
-			}
-		};
-		struct uniform_random_mutate{
-			template<typename urbg>
-			void operator()(state& x, urbg URBG){
-				for(auto& v : x){
-					if(std::uniform_real_distribution<double>(0, 1)(URBG) < 0.1){
-						v = std::uniform_real_distribution<double>(0, 1)(URBG);
-					}
-				}
-			}
-		};
-	private:
-		prey_fitness PreyFitness;
-		predator_fitness PredatorFitness;
-		container Container;
-	public:
-		template<typename iterator>
-		predator_prey_game_system(predation Predation_, prey_fitness PreyFitness_, predator_fitness PredatorFitness_, iterator VBeg, iterator VEnd, iterator UBeg, iterator UEnd, iterator CBeg, iterator CEnd, double d_, double e_, double r_)
-			: PreyFitness(std::move(PreyFitness_))
-			, PredatorFitness(std::move(PredatorFitness_)){
-			if(	std::distance(VBeg, VEnd) != std::distance(UBeg, UEnd)
-				|| std::distance(VBeg, VEnd) != std::distance(CBeg, CEnd)
-			){
-				throw std::exception();
-			}
-
-			for(; VBeg != VEnd; ++VBeg, ++UBeg, ++CBeg){
-				Container.emplace_back(Predation_, *VBeg, *UBeg, *CBeg, d_, e_, r_);
-			}
-		}
-		std::tuple<state, double, double> get_predator_strategy(const state& PreyStrategy)const{
-			using data_t = std::pair<unsigned int, double>;
-			std::vector<data_t> Data;
-			for(unsigned int i = 0; i < PreyStrategy.size(); ++i){
-				Data.emplace_back(i, Container.at(i).predator_reward(PreyStrategy.at(i)) / (Container.at(i).predator_cost() + std::numeric_limits<double>::min()));
-			}
-			std::sort(Data.begin(), Data.end(), [](const data_t& v1, const data_t& v2){return std::get<1>(v1) > std::get<1>(v2); });
-
-			state PredatorStrategy(PreyStrategy.size(),0.0);
-			double R = 0.0;
-			double C = 0.0;
-			double Eval = 0.0;
-			for(unsigned int i = 0; i < Data.size(); ++i){
-				unsigned int No = std::get<0>(Data.at(i));
-				double NR = R + Container.at(No).predator_reward(PreyStrategy.at(No));
-				double NC = C + Container.at(No).predator_cost();
-
-				double NEval = PredatorFitness(NR, NC);
-
-				if(NEval < Eval)break;
-
-				R = NR;
-				C = NC;
-				Eval = NEval;
-				PredatorStrategy.at(No) = 1.0;
-			}
-
-			return std::make_tuple(PredatorStrategy, R, C);
-		}
-		boost::optional<std::pair<state,state>> make_state(const mode& x)const{
-			//Set default state
-			state PreyState(x.size(), 0.);
-			for(unsigned int i = 0; i < x.size(); ++i){
-				if(x.at(i) < 2){
-					PreyState.at(i) = 0.0;
-				} else{
-					PreyState.at(i) = 1.0;
-				}
-			}
-
-			//Set predator strategy
-			double PredatorR;
-			double PredatorC;
-			state PredatorState;
-			std::tie(PredatorState,PredatorR,PredatorC) = get_predator_strategy(PreyState);
-
-			//Check the predator behaviour condition is fit to f_thr condition
-			//	no predation is required
-			for(unsigned int i = 0; i < x.size(); ++i){
-				if(x.at(i) == 1 && PredatorState.at(i) > 0.0)return boost::optional<std::pair<state, state>>(boost::none);
-			}
-
-			//Calculate minimum Predator drdm
-			double PredatorDRDC = PredatorFitness.minimum_drdm(PredatorR, PredatorC);
-
-			//Predator
-			for(unsigned int i = 0; i < PreyState.size(); ++i){
-				if(x.at(i) != 1)continue;
-				PreyState.at(i) = Container.at(i).prey_threshold_freq(PredatorDRDC);
-			}
-
-			return boost::optional<std::pair<state, state>>(std::make_pair(std::move(PreyState), std::move(PredatorState)));
-		}
-		std::pair<state, state> operator()(void)const{
-			mode Mode(Container.size(), 0);
-			brute_force_mutate Mutate;
-
-			auto BestState = make_state(Mode);
-			double BestEval;
-			if(BestState){
-				BestEval = get_prey_fitness(BestState.get().first, BestState.get().second);
-			} else{
-				BestEval = std::numeric_limits<double>::lowest();
-			}
-
-			while(Mutate(Mode)){
-				auto State = make_state(Mode);
-				if(!State)continue;
-
-				auto Eval = get_prey_fitness(State.get().first, State.get().second);
-
-				if(BestEval < Eval){
-					BestEval = Eval;
-					BestState = State;
-				}
-			}
-
-			return BestState.get();
-		}
-		std::pair<state, state> hill_climb(unsigned int Cnt)const{
-			state Prey(Container.size(), 0.5);
-			
-			auto Eval = [this](const state& x){
-				state y;
-				std::tie(y,std::ignore,std::ignore) = get_predator_strategy(x);
-				return get_prey_fitness(x, y);
-			};
-			hmLib::optimize::hill_climbing_search(Prey, Eval, uniform_random_mutate(), hmLib::optimize::state_breakers::const_step_breaker<state, double>(Cnt), hmLib::random::default_engine());
-
-			state Predator;
-			std::tie(Predator, std::ignore, std::ignore) = get_predator_strategy(Prey);
-
-			return std::make_pair(Prey, Predator);
-		}
-		state evolutionary_stability(const state& PreyStrategy, unsigned int MaxCnt)const{
-			state PreyMutant(Container.size(), 0.5);
-
-			for(unsigned int Cnt = 0; Cnt < MaxCnt; ++Cnt){
-				uniform_random_mutate()(PreyMutant, hmLib::random::default_engine());
-
-				state AvePrey(Container.size(), 0.0);
-				for(unsigned int i = 0; i < PreyStrategy.size(); ++i){
-					AvePrey.at(i) = 0.99 * PreyStrategy.at(i) + 0.01 * PreyMutant.at(i);
-				}
-
-				state Predator;
-				std::tie(Predator, std::ignore, std::ignore) = get_predator_strategy(AvePrey);
-
-				if(get_prey_fitness(PreyStrategy, Predator) < get_prey_fitness(PreyMutant, Predator))return PreyMutant;
-			}
-
-			return PreyStrategy;
-		}
-		const_iterator begin()const{ return std::begin(Container); }
-		const_iterator end()const{ return std::end(Container); }
-		const time_info& at(unsigned int i)const{ return Container.at(i); }
-		unsigned int size()const{ return Container.size(); }
-		double get_prey_fitness(const state& Prey, const state& Predator)const{
-			double R = 0;
-			double M = 0;
-			for(unsigned int i = 0; i < Prey.size(); ++i){
-				R += Container[i].prey_reward(Prey[i]);
-				M += Container[i].prey_mortality(Prey[i], Predator[i]);
-			}
-
-			return PreyFitness(R, M);
-		}
-		double get_predator_fitness(const state& Prey, const state& Predator)const{
-			double R = 0;
-			double M = 0;
-			for(unsigned int i = 0; i < Predator.size(); ++i){
-				R += Predator[i] * Container[i].predator_reward(Prey[i]);
-				M += Predator[i] * Container[i].predator_cost();
-			}
-
-			return PredatorFitness(R, M);
 		}
 	};
 
