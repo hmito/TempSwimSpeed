@@ -66,7 +66,7 @@ Rcpp::List tss_probforage_energygain_optimize(
 		PredatorL[i] = TimeInfo.predator_strategy(svLower[i]);
 		PredatorH[i] = TimeInfo.predator_strategy(svUpper[i]);
 		Thr[i] = TimeInfo.f_threshold();
-		rf[i] = TimeInfo.prey_reward(0);
+		rf[i] = TimeInfo.prey_reward(2);
 		m0[i] = TimeInfo.prey_mortality(0);
 		mF[i] = TimeInfo.prey_mortality(1);
 		m1[i] = TimeInfo.prey_mortality(2);
