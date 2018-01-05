@@ -60,6 +60,8 @@ namespace tempss{
 			double l;			//predation rate
 			double d;			//relative density of predator/prey
 			double e;			//relative risk of predation for resting prey
+			double cb;			//metabolic cost for prey (should pay both for resting and foraging)
+			double cf;			//foraging cost for prey (should pay only for foraging)
 		private://calculated parameters
 			double f_thr;		//thrsholf f of predator foraging
 			double p0;
@@ -73,14 +75,16 @@ namespace tempss{
 			double m1;			//mortality under f=1
 		public:
 			template<typename predation>
-			time_info(const predation& Predation_, double v_, double u_, double k_, double c_, double l_, double d_, double e_)
+			time_info(const predation& Predation_, double v_, double u_, double k_, double c_, double l_, double d_, double e_, double cb_, double cf_)
 				: v(v_)
 				, u(u_)
 				, k(k_)
 				, c(c_)
 				, l(l_)
 				, d(d_)
-				, e(e_){
+				, e(e_)
+				, cb(cb_)
+				, cf(cf_){
 
 				//necessary effective fraction of prey (i.e., f + r*(1-f))
 				double pf_thr = find_predation_threshold(Predation_, v, u, l, c);
@@ -93,9 +97,9 @@ namespace tempss{
 					p0 = Predation_(e, v, u, l);
 					pF = p0;
 					p1 = Predation_(1, v, u, l);
-					m0 = p0 * d / (e + std::numeric_limits<double>::min());
-					m1 = p1 * d / (1 + std::numeric_limits<double>::min());
-					mF = m0;
+					m0 = p0 * d / (e + std::numeric_limits<double>::min()) + cb;
+					m1 = p1 * d / (1 + std::numeric_limits<double>::min()) + cb + cf;
+					mF = m0 + cb + cf;
 					r0 = 0;
 					r1 = k*u;
 					rF = 0;
@@ -104,9 +108,9 @@ namespace tempss{
 					p0 = 0.0;
 					pF = 0.0;
 					p1 = 0.0;
-					m0 = 0.0;
-					m1 = 0.0;
-					mF = m1;
+					m0 = 0.0 + cb ;
+					m1 = 0.0 + cb + cf;
+					mF = m1 + cb + cf;
 					r0 = 0;
 					r1 = k*u;
 					rF = k*u;
@@ -114,9 +118,9 @@ namespace tempss{
 					p0 = 0.0;
 					pF = 0.0;
 					p1 = Predation_(1, v, u, l);
-					m0 = 0.0;
-					m1 = p1 * d / (1.0 + std::numeric_limits<double>::min());
-					mF = 0.0;
+					m0 = 0.0 + cb;
+					m1 = p1 * d / (1.0 + std::numeric_limits<double>::min()) + cb + cf;
+					mF = 0.0 + cb + cf*f_thr;
 					r0 = 0;
 					r1 = k*u;
 					rF = k*u*f_thr;
@@ -145,7 +149,7 @@ namespace tempss{
 				else if(s == 1)return rF;
 				else return r1;
 			}
-			double prey_mortality(state_element s)const{
+			double prey_cost(state_element s)const{
 				if(s == 0)return m0;
 				else if(s == 1)return mF;
 				else return m1;
@@ -168,7 +172,7 @@ namespace tempss{
 			iterator KBeg, iterator KEnd, 
 			iterator CBeg, iterator CEnd,
 			iterator LBeg, iterator LEnd, 
-			double d_, double e_)
+			double d_, double e_, double cb_, double cf_)
 			: PreyFitness(std::move(PreyFitness_))
 			, PredatorFitness(std::move(PredatorFitness_)){
 			if(std::distance(VBeg, VEnd) != std::distance(UBeg, UEnd)
@@ -180,7 +184,7 @@ namespace tempss{
 			}
 
 			for (; VBeg != VEnd; ++VBeg, ++UBeg, ++KBeg, ++CBeg, ++LBeg) {
-				Container.emplace_back(Predation_, *VBeg, *UBeg, *KBeg, *CBeg, *LBeg, d_, e_);
+				Container.emplace_back(Predation_, *VBeg, *UBeg, *KBeg, *CBeg, *LBeg, d_, e_,cb_, cf_);
 			}
 		}
 		std::pair<state,state> operator()(void)const{
@@ -190,11 +194,11 @@ namespace tempss{
 			for(const auto& Info : Container){
 				if(Info.is_two_step()){
 					Data.push_back(
-						(Info.prey_reward(1) - Info.prey_reward(0)) / (Info.prey_mortality(1) - Info.prey_mortality(0) + std::numeric_limits<double>::min())
+						(Info.prey_reward(1) - Info.prey_reward(0)) / (Info.prey_cost(1) - Info.prey_cost(0) + std::numeric_limits<double>::min())
 					);
 				} else{
 					Data.push_back(
-						(Info.prey_reward(2) - Info.prey_reward(0)) / (Info.prey_mortality(2) - Info.prey_mortality(0) + std::numeric_limits<double>::min())
+						(Info.prey_reward(2) - Info.prey_reward(0)) / (Info.prey_cost(2) - Info.prey_cost(0) + std::numeric_limits<double>::min())
 					);
 				}
 			}
@@ -217,7 +221,7 @@ namespace tempss{
 
 				//Update DataSet
 				if(Upper[No] == 1){
-					Data[No] = (Info.prey_reward(2) - Info.prey_reward(0)) / (Info.prey_mortality(2) - Info.prey_mortality(0) + std::numeric_limits<double>::min());
+					Data[No] = (Info.prey_reward(2) - Info.prey_reward(0)) / (Info.prey_cost(2) - Info.prey_cost(0) + std::numeric_limits<double>::min());
 				} else{
 					Data[No] = 0.0;
 				}
@@ -231,7 +235,7 @@ namespace tempss{
 				double TotalM = 0.0;
 				for(unsigned int i = 0; i < Container.size(); ++i){
 					TotalR += Container.at(i).prey_reward(Upper[i]);
-					TotalM += Container.at(i).prey_mortality(Upper[i]);
+					TotalM += Container.at(i).prey_cost(Upper[i]);
 				}
 
 				if(!is_prey_fitness_increasing(PreyFitness, TotalR, TotalM, Data[NewNo])){
@@ -253,7 +257,7 @@ namespace tempss{
 			double M = 0;
 			for (unsigned int i = 0; i < x.size(); ++i) {
 				R += Container[i].prey_reward(x[i]);
-				M += Container[i].prey_mortality(x[i]);
+				M += Container[i].prey_cost(x[i]);
 			}
 
 			return PreyFitness(R, M);
