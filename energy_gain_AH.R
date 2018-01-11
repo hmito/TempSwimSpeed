@@ -1,6 +1,43 @@
+hist.find_peaks = function(hist,min,max,n=101){
+	threshold.mx = matrix(rep(seq(min,max,length=n),each=length(hist)+2),length(hist)+2,n)
+	hist.mx = matrix(rep(c(0,hist,0),times=n),length(hist)+2,n)
+	exist.mx = hist.mx>threshold.mx
+	
+	result = apply(exist.mx[-1,]!=exist.mx[-nrow(exist.mx),],2,sum)/2
+	result.table = table(result)
+	peak.num = as.integer(names(result.table)[order(result.table,decreasing=TRUE)[1]])
+	
+	threshold.no = min((1:n)[result==peak.num])
+	exist.seq = exist.mx[,threshold.no]
+	
+	peaks = data.frame("lower"=NA,"upper"=NA,"top"=NA,"freq"=NA)
+
+	if(peak.num!=0){
+		boundary = 1
+		
+		lower = (1:(length(exist.seq)-1))[exist.seq[-1]&(!exist.seq[-length(exist.seq)])]
+		upper = (0:(length(exist.seq)))[(!exist.seq[-1])&exist.seq[-length(exist.seq)]]
+		
+		for(peak.pos in 1:peak.num){
+			this.lower = min((boundary:lower[peak.pos])[hist[boundary:lower[peak.pos]]>0])
+			if(peak.pos<peak.num){
+				boundary = (upper[peak.pos]:lower[peak.pos+1])[order(hist[upper[peak.pos]:lower[peak.pos+1]])[1]]
+			}else{
+				boundary = length(hist)
+			}
+			this.upper = max((upper[peak.pos]:(boundary-1))[hist[upper[peak.pos]:(boundary-1)]>0])
+			this.top = (this.lower:this.upper)[order(hist[this.lower:this.upper],decreasing = TRUE)[1]]
+			this.freq = sum(hist[this.lower:this.upper])
+			
+			peaks = rbind(peaks,data.frame("lower"=this.lower,"upper"=this.upper,"top"=this.top,"freq"=this.freq))
+		}
+	}
+
+	return(peaks[-1,])
+}
+
 #TempSwimSpeed_v1_02
 #   Predator efficiency 
-
 library("Rcpp")
 library("BH")
 sourceCpp("TempSwimSpeedOptim.cpp")
@@ -96,23 +133,207 @@ for (i in 1:8) {
 		  main=bquote(paste('l'['1']*'=',.(lamp),', b=', .(b),', e=', .(e))))  #  main=figlabs[i]
 	lines(t,Predator*0.98,col="red",lwd=3)
 	lines(t,Prey,col="blue",lwd=3)
-	
 } # end of loop 
 
-#Optimization
-#Because prey have discrete choice (f = 0, f* or 1 where f* is the threshold prey frequency for predators activity),
-#there are two potential optimal behaviour of prey (before and after the peak of fitness)
-#Return values include the following members
-#	PreyL		Optimal prey behaviour at lower point of the fitness peak
-#	PreyH		Optimal prey behaviour at upper point of the fitness peak
-#	PreyWL	Fitness of prey at PreyL
-#	PreyWH	Fitness of prey at PreyH
-#	PredatorL	Optimal predator behaviour at PreyL
-#	PredatorH	Optimal predator behaviour at PreyH
-#	PredatorWL	Fitness of predator at PreyL
-#	PredatorWH	Fitness of predator at PreyH
-#	ThresholdPreyFreq	The threshold prey frequency for predators activity f* 
-#	PreyReward	Reward of prey (independent from the strategy of prey/predators)
-#	PreyMortality0	Mortality rate of prey caused by predation when f=0
-#	PreyMortalityF	ortality rate of prey caused by predation when f=f*
-#	PreyMortality1	ortality rate of prey caused by predation f=1
+
+dev.off()
+
+#=== analysis of peaks1 ===
+#	example of the analysis counting the number of peaks of predator.
+#	Two parameter (lamp and V-U) is changed in x-axis and y-axis.
+DotNum=41
+
+x.seq = seq(0,0.5,length=DotNum)
+y.seq = seq(0,1,length=DotNum)
+
+PreyPeaks.mx = matrix(0,DotNum,DotNum)
+PredatorPeaks.mx = matrix(0,DotNum,DotNum)
+
+for (y.i in 1:length(y.seq)) {
+	for (x.i in 1:length(x.seq)) {
+		#set the parameter valus
+		# x: effect of lamp
+		# y: difference of vmax - umax, vmin-umin
+		lamp = x.seq[x.i]
+		vudif = y.seq[y.i]
+		
+		#influence of light on the predation rate
+		L = lmean+lamp*(exp(-2.0*cos(2*pi*t/tnum))/exp(2.0)-0.5)
+		
+		#influence of speed
+		umin = 0.5
+		umax = 2.0
+		umaxt = 15
+		
+		vmin = umin + vudif
+		vmax = umax + vudif
+		vmaxt = 18
+		
+		V = vmin + (vmax - vmin)*(cos(2*pi*(t-vmaxt)/tnum)+1)/2
+		U = umin + (umax - umin)*(cos(2*pi*(t-umaxt)/tnum)+1)/2
+		
+		# find solution
+		Ans = tss_probforage_energygain_optimize(V, U, K, C, L, d, e, b, h,cb,cf)
+
+		#find_peaks function return the table of the peaks
+		#	Each row of the table shows infomation of each peak
+		#		Therefore, nrow (number of row) is the number of peaks 
+		#	"lower" col and "upper" cik show the lower and upper value (in this case, time) of the focal peak
+		#		Therefore, upper-lower is the width of each peak
+		#	"top" and "freq" cols will be useless in this model
+		#		top is the maximum point (time) of the peak
+		#		freq is the total value inside of the peak
+		PreyPeaks = hist.find_peaks(Ans$Prey,0.00,0.05)
+		PredatorPeaks = hist.find_peaks(Ans$Predator,0.00,0.05)
+		PreyPeaks.mx[x.i,y.i] = nrow(PreyPeaks) + ifelse(PreyPeaks$lower[1]==1 & PreyPeaks$upper[nrow(PreyPeaks)]==tnum, -1, 0)
+		PredatorPeaks.mx[x.i,y.i] = nrow(PredatorPeaks) + ifelse(PredatorPeaks$lower[1]==1 & PredatorPeaks$upper[nrow(PredatorPeaks)]==tnum, -1, 0)
+		#ifelse is used for the reduction of the number of peaks because time:0 == time:24, i.e, the two peaks are actually only one peak.
+	}
+}
+
+#colour shows the number of peaks
+filled.contour(x.seq,y.seq,PredatorPeaks.mx,col=grey.colors(20))
+
+
+#=== analysis of peaks2 ===
+#	Map of the predator-prey strategy plot.
+#	output is png file with defined name
+DotNum=10
+
+x.seq = seq(0,0.5,length=DotNum)
+y.seq = seq(0,1,length=DotNum)
+
+PredatorMode.mx = matrix(0,DotNum,DotNum)
+png("test.png",height=2500,width=2500)
+par(oma=c(0.2,0.2,0.2,0.2),mfrow=c(DotNum,DotNum))
+for (y.i in 1:length(y.seq)) {
+	for (x.i in 1:length(x.seq)) {
+		#set the parameter valus
+		# x: effect of lamp
+		# y: difference of vmax - umax, vmin-umin
+		lamp = x.seq[x.i]
+		vudif = y.seq[y.i]
+		
+		#influence of light on the predation rate
+		L = lmean+lamp*(exp(-2.0*cos(2*pi*t/tnum))/exp(2.0)-0.5)
+		
+		#influence of speed
+		umin = 0.5
+		umax = 2.0
+		umaxt = 15
+		
+		vmin = umin + vudif
+		vmax = umax + vudif
+		vmaxt = 18
+		
+		V = vmin + (vmax - vmin)*(cos(2*pi*(t-vmaxt)/tnum)+1)/2
+		U = umin + (umax - umin)*(cos(2*pi*(t-umaxt)/tnum)+1)/2
+		
+		# find solution
+		Ans = tss_probforage_energygain_optimize(V, U, K, C, L, d, e, b, h,cb,cf)
+		
+		#Summarized figure
+		Prey= Ans$Prey
+		Predator = Ans$Predator
+		
+		plot(0,0,type="n",
+			  xlab="time (t)",ylab="foraging predator (red), prey (blue)",
+			  xlim=c(0,tnum),ylim=c(-0.02,1.02),       
+			  main=bquote(paste('l'['1']*'=',.(lamp),', b=', .(b),', e=', .(e))))  #  main=figlabs[i]
+		lines(t,Predator*0.98,col="red",lwd=3)
+		lines(t,Prey,col="blue",lwd=3)
+	}
+}
+dev.off()
+
+
+
+#=== analysis of peaks3 ===
+#	example of the analysis based on the pattern of the predator active time.
+#	Two parameter (lamp and V-U) is changed in x-axis and y-axis.
+DotNum=41
+
+x.seq = seq(0,0.5,length=DotNum)
+y.seq = seq(0,1,length=DotNum)
+
+PredatorMode.mx = matrix(0,DotNum,DotNum)
+
+for (y.i in 1:length(y.seq)) {
+	for (x.i in 1:length(x.seq)) {
+		#set the parameter valus
+		# x: effect of lamp
+		# y: difference of vmax - umax, vmin-umin
+		lamp = x.seq[x.i]
+		vudif = y.seq[y.i]
+		
+		#influence of light on the predation rate
+		L = lmean+lamp*(exp(-2.0*cos(2*pi*t/tnum))/exp(2.0)-0.5)
+		
+		#influence of speed
+		umin = 0.5
+		umax = 2.0
+		umaxt = 15
+		
+		vmin = umin + vudif
+		vmax = umax + vudif
+		vmaxt = 18
+		
+		V = vmin + (vmax - vmin)*(cos(2*pi*(t-vmaxt)/tnum)+1)/2
+		U = umin + (umax - umin)*(cos(2*pi*(t-umaxt)/tnum)+1)/2
+		
+		# find solution
+		Ans = tss_probforage_energygain_optimize(V, U, K, C, L, d, e, b, h,cb,cf)
+		
+		#find_peaks function return the table of the peaks
+		#	Each row of the table shows infomation of each peak
+		#		Therefore, nrow (number of row) is the number of peaks 
+		#	"lower" col and "upper" cik show the lower and upper value (in this case, time) of the focal peak
+		#		Therefore, upper-lower is the width of each peak
+		#	"top" and "freq" cols will be useless in this model
+		#		top is the maximum point (time) of the peak
+		#		freq is the total value inside of the peak
+		PredatorPeaks = hist.find_peaks(Ans$Predator,0.00,0.05)
+
+		#Mode
+		#	-1 "black": unknown 
+		#	 0 "grey": No predation
+		#	 1 "blue":	afternoon 
+		#	 2 "cyan": afternoon-midnight(over 12)
+		#	 3 "green":	beforenoon-midnight (rest only morning)
+		#	 4 "orange": afternoon with short rest on everning
+		#	 5 "yellow": afternoon-midnight(over 12) with short rest on everning 
+		#	 6 "red": afternoon-midnight(over 12) with short rest on morning 
+		Mode=-1
+		if(nrow(PredatorPeaks)==0){
+			Mode = 0
+		}else if(nrow(PredatorPeaks)==1){
+			if(12 < PredatorPeaks$lower[1] && PredatorPeaks$upper[1] <= 24){
+				Mode = 1
+			}
+		}else if(nrow(PredatorPeaks)==2){
+			if(PredatorPeaks$lower[1]==1 && PredatorPeaks$upper[1] < 9 &&
+				12 < PredatorPeaks$lower[2] && PredatorPeaks$upper[2] == 24){
+				Mode = 2
+			}else if(PredatorPeaks$lower[1]==1 && PredatorPeaks$upper[1] < 9 &&
+				PredatorPeaks$upper[1] < PredatorPeaks$lower[2] && PredatorPeaks$upper[2] == 24){
+				Mode = 3
+			}else if(12 < PredatorPeaks$lower[1] && PredatorPeaks$upper[1] < 24 &&
+				PredatorPeaks$upper[1] < PredatorPeaks$lower[2] && PredatorPeaks$upper[2] <= 24){
+				Mode = 4
+			}
+		}else if(nrow(PredatorPeaks)==3){
+			if(PredatorPeaks$lower[1]==1 && PredatorPeaks$upper[1] < 9 &&
+				12 < PredatorPeaks$lower[2] && PredatorPeaks$upper[2] < 24&&
+				PredatorPeaks$upper[2] < PredatorPeaks$lower[3] && PredatorPeaks$upper[3] == 24){
+				Mode = 5
+			}else if(PredatorPeaks$lower[1]==1 && PredatorPeaks$upper[1] < 9 &&
+				PredatorPeaks$upper[1] < PredatorPeaks$lower[2] && PredatorPeaks$upper[2] < 12&&
+				12 < PredatorPeaks$lower[3] && PredatorPeaks$upper[3] == 24){
+				Mode = 6
+			}
+		}
+		PredatorMode.mx[x.i,y.i] = Mode
+	}
+}
+
+image(x.seq,y.seq,PredatorMode.mx,zlim=c(-1,6),col=c("black","grey","blue","cyan","blue","orange","yellow","red"))
