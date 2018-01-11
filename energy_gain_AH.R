@@ -206,7 +206,7 @@ y.seq = seq(0,1,length=DotNum)
 PredatorMode.mx = matrix(0,DotNum,DotNum)
 png("test.png",height=2500,width=2500)
 par(oma=c(0.2,0.2,0.2,0.2),mfrow=c(DotNum,DotNum))
-for (y.i in 1:length(y.seq)) {
+for (y.i in length(y.seq):1) {
 	for (x.i in 1:length(x.seq)) {
 		#set the parameter valus
 		# x: effect of lamp
@@ -308,27 +308,33 @@ for (y.i in 1:length(y.seq)) {
 			Mode = 0
 		}else if(nrow(PredatorPeaks)==1){
 			if(12 < PredatorPeaks$lower[1] && PredatorPeaks$upper[1] <= 24){
+				#predation is start after 0 pm and finish before 0am
 				Mode = 1
 			}
 		}else if(nrow(PredatorPeaks)==2){
 			if(PredatorPeaks$lower[1]==1 && PredatorPeaks$upper[1] < 9 &&
 				12 < PredatorPeaks$lower[2] && PredatorPeaks$upper[2] == 24){
+				#predation is start after 0pm and finish between [0pm : 9am].
 				Mode = 2
 			}else if(PredatorPeaks$lower[1]==1 && PredatorPeaks$upper[1] < 9 &&
 				PredatorPeaks$upper[1] < PredatorPeaks$lower[2] && PredatorPeaks$upper[2] == 24){
+				#predation is start beforenoon[9am:0pm], and finish before 9 am
 				Mode = 3
 			}else if(12 < PredatorPeaks$lower[1] && PredatorPeaks$upper[1] < 24 &&
 				PredatorPeaks$upper[1] < PredatorPeaks$lower[2] && PredatorPeaks$upper[2] <= 24){
+				#predation is start after 0pm, and finish before 0am with short rest.
 				Mode = 4
 			}
 		}else if(nrow(PredatorPeaks)==3){
 			if(PredatorPeaks$lower[1]==1 && PredatorPeaks$upper[1] < 9 &&
 				12 < PredatorPeaks$lower[2] && PredatorPeaks$upper[2] < 24&&
 				PredatorPeaks$upper[2] < PredatorPeaks$lower[3] && PredatorPeaks$upper[3] == 24){
+				#predation is start after 0pm, and finish between [0pm : 9am]. short rest at between [0pm : 0am].
 				Mode = 5
 			}else if(PredatorPeaks$lower[1]==1 && PredatorPeaks$upper[1] < 9 &&
-				PredatorPeaks$upper[1] < PredatorPeaks$lower[2] && PredatorPeaks$upper[2] < 12&&
+				PredatorPeaks$upper[1] < PredatorPeaks$lower[2] && PredatorPeaks$upper[2] < 9&&
 				12 < PredatorPeaks$lower[3] && PredatorPeaks$upper[3] == 24){
+				#predation is start after 0pm, and finish between [0pm : 9am]. short rest at between [0pm : 9am].
 				Mode = 6
 			}
 		}
@@ -336,4 +342,4 @@ for (y.i in 1:length(y.seq)) {
 	}
 }
 
-image(x.seq,y.seq,PredatorMode.mx,zlim=c(-1,6),col=c("black","grey","blue","cyan","blue","orange","yellow","red"))
+image(x.seq,y.seq,PredatorMode.mx,zlim=c(-1,6),col=c("black","grey","blue","cyan","green","orange","yellow","red"))
