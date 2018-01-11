@@ -194,11 +194,11 @@ namespace tempss{
 			for(const auto& Info : Container){
 				if(Info.is_two_step()){
 					Data.push_back(
-						(Info.prey_reward(1) - Info.prey_reward(0)) / (Info.prey_cost(1) - Info.prey_cost(0) + std::numeric_limits<double>::min())
+						(Info.prey_reward(1) - Info.prey_reward(0)) / std::max(Info.prey_cost(1) - Info.prey_cost(0), std::numeric_limits<double>::min())
 					);
 				} else{
 					Data.push_back(
-						(Info.prey_reward(2) - Info.prey_reward(0)) / (Info.prey_cost(2) - Info.prey_cost(0) + std::numeric_limits<double>::min())
+						(Info.prey_reward(2) - Info.prey_reward(0)) / std::max(Info.prey_cost(2) - Info.prey_cost(0), std::numeric_limits<double>::min())
 					);
 				}
 			}
