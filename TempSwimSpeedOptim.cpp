@@ -84,7 +84,7 @@ Rcpp::List tss_probforage_energygain_optimize(
 	return Rcpp::List::create(
 		Rcpp::Named("Prey") = PreyWL>PreyWH? PreyL: PreyH,
 		Rcpp::Named("Predator") = PreyWL>PreyWH? PredatorL: PredatorH,
-		Rcpp::Named("PreyW") = PreyWL>PreyWH? PredatorL: PredatorH,
+		Rcpp::Named("PreyW") = PreyWL>PreyWH? PreyWL : PreyWH,
 		Rcpp::Named("PredatorW") = PreyWL>PreyWH? PredatorWL: PredatorWH,
 		Rcpp::Named("ThresholdPreyFreq") = Thr,
 		Rcpp::Named("PreyReward") = rf,
