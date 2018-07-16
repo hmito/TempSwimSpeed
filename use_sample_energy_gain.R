@@ -62,10 +62,6 @@ cf	= 0.0001	#foraging cost for prey (should pay only for foraging)
 #	Predator	Optimal predator behaviour
 #	PredatorW	Fitness of predator
 #	ThresholdPreyFreq	The threshold prey frequency for predators activity f* 
-#	PreyReward	Reward of prey (independent from the strategy of prey/predators)
-#	PreyCost0	Cost of prey caused by predation when f=0
-#	PreyCostF	Cost of prey caused by predation when f=f*
-#	PreyCost1	Cost of prey caused by predation f=1
 Ans = tss_probforage_energygain_optimize(V, U, K, C, L, d, e, omega, b, h,cb,cf)
 
 
@@ -99,6 +95,7 @@ plot(rep(1:length(Ans$PreyCost),times=2),c(Ans$PreyCost,Ans$PredatorCost),type="
 lines(Ans$PreyCost,type="b",pch=19,xlab="time",ylab= "predation risk",col="red")
 lines(Ans$PreyReward,type="b",pch=19,xlab="time",ylab= "predation risk",col="blue")
 
-plot(Ans$PredatorReward,type="b",pch=19,xlab="time",ylab= "predation risk",col="blue")
+plot(rep(1:length(Ans$PredatorReward),times=2),c(Ans$PredatorReward,Ans$PredatorCost),type="n",pch=19,xlab="time",ylab= "predation risk", col="red")
+lines(Ans$PredatorReward,type="b",pch=19,xlab="time",ylab= "predation risk",col="blue")
 lines(Ans$PredatorCost,type="b",pch=19,xlab="time",ylab= "predation risk",col="red")
 
