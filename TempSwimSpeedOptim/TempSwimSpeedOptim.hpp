@@ -101,7 +101,7 @@ namespace tempss{
 					m1 = p1 * d / (1 + std::numeric_limits<double>::min()) + cb + cf;
 					mF = m0 + cb + cf;
 					r0 = 0;
-					r1 = k*((1-omega_)+omega_*u);
+					r1 = k*(1+omega_*u);
 					rF = 0;
 				} else if(f_thr >= 1.0){
 					// xF == x1
@@ -112,8 +112,8 @@ namespace tempss{
 					m1 = 0.0 + cb + cf;
 					mF = m1 + cb + cf;
 					r0 = 0;
-					r1 = k*((1-omega_)+omega_*u);
-					rF = k*((1-omega_)+omega_*u);
+					r1 = k*(1+omega_*u);
+					rF = k*(1+omega_*u);
 				} else{
 					p0 = 0.0;
 					pF = 0.0;
@@ -122,8 +122,8 @@ namespace tempss{
 					m1 = p1 * d / (1.0 + std::numeric_limits<double>::min()) + cb + cf;
 					mF = 0.0 + cb + cf*f_thr;
 					r0 = 0;
-					r1 = k*((1-omega_)+omega_*u);
-					rF = k*((1-omega_)+omega_*u)*f_thr;
+					r1 = k*(1+omega_*u);
+					rF = k*(1+omega_*u)*f_thr;
 				}
 			}
 		public:

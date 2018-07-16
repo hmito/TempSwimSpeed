@@ -8,12 +8,12 @@
 
 //probability foraging optimization of energy gain
 //	V,U		Vector of speed of predators and prey at each time step
-//	K		Food availability for prey, i.e., the obtained reward will be K*((1-omega) + omega*U)
+//	K		Food availability for prey, i.e., the obtained reward will be K*(1 + omega*U)
 //	C		Vector of metabolic predation cost for predators
 //	L		Vector of influence of brightness on the predation rate
 //	d		relative density of predator/prey
 //	e		relative predation risk of resting prey to foraging ones
-//	omega	influence of the speed of prey on the foraging efficiency, i.e., the obtained reward will be K*((1-omega) + omega*U)
+//	omega	influence of the speed of prey on the foraging efficiency, i.e., the obtained reward will be K*(1 + omega*U)
 //following three parameters determine the predation rate: a*(v-u)^b / {1 + h*a*(v-u)^b}  
 //	a		coefficienct of the predation rate (now it is fixed to one)
 //	b		non-linear influence of speed difference

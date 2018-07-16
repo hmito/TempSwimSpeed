@@ -92,7 +92,7 @@ V = vmin + vtemp*(sharktemp-min(sharktemp))
 #amount of food availability for prey
 alpha = rep(0.02, length=tnum)
 #[NEW 18/07/16] influence of swim speed on foraging efficiency
-omega = 0	#obtained reward is alpha*((1-omega)+omega*U)
+omega = 0	#obtained reward is alpha*(1+omega*U)
 #metabolic cost for predators when they go out for predation
 C = rep(0.02, length=tnum)		
 #following three parameters determine the prey traits

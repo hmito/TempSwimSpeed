@@ -32,7 +32,7 @@ L = 0.2+0.8*exp(-2.0*cos(2*pi*t/tnum))/exp(2.0)	#influence of light on the preda
 e = 0.0		#relative risk of predation for resting prey
 d = 0.001		#relative density of predator/prey
 #[NEW 18/07/16] influence of swim speed on foraging efficiency
-omega = 0	#obtained reward is alpha*((1-omega)+omega*U)
+omega = 0	#obtained reward is alpha*(1+omega*U)
 #following two parameters determine the predation rate: a*(v-u)^b / {1 + h*a*(v-u)^b} 
 b = 3.0		#non-linear influence of speed difference
 h = 2.0		#handling time for predation a prey
