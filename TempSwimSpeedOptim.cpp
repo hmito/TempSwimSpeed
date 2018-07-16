@@ -8,11 +8,12 @@
 
 //probability foraging optimization of energy gain
 //	V,U		Vector of speed of predators and prey at each time step
-//	K		Food availability for prey, i.e., the obtained reward will be R*U
+//	K		Food availability for prey, i.e., the obtained reward will be K*((1-omega) + omega*U)
 //	C		Vector of metabolic predation cost for predators
 //	L		Vector of influence of brightness on the predation rate
 //	d		relative density of predator/prey
 //	e		relative predation risk of resting prey to foraging ones
+//	omega	influence of the speed of prey on the foraging efficiency, i.e., the obtained reward will be K*((1-omega) + omega*U)
 //following three parameters determine the predation rate: a*(v-u)^b / {1 + h*a*(v-u)^b}  
 //	a		coefficienct of the predation rate (now it is fixed to one)
 //	b		non-linear influence of speed difference
@@ -29,6 +30,7 @@ Rcpp::List tss_probforage_energygain_optimize(
 	Rcpp::NumericVector L,
 	double d,
 	double e,
+	double omega,
 	double b,
 	double h,
 	double cb,
@@ -41,7 +43,17 @@ Rcpp::List tss_probforage_energygain_optimize(
 	using this_state = typename this_system::state;
 	using freq_state = tempss::freq_state;
 
-	this_system System(predation(1.0, b, h), prey_fitness(1.0, 0.0), predator_fitness(), V.begin(), V.end(), U.begin(), U.end(), K.begin(), K.end(), C.begin(), C.end(), L.begin(), L.end(), d, e,cb,cf);
+	this_system System(
+		predation(1.0, b, h), 
+		prey_fitness(1.0, 0.0), 
+		predator_fitness(), 
+		V.begin(), V.end(), 
+		U.begin(), U.end(), 
+		K.begin(), K.end(), 
+		C.begin(), C.end(), 
+		L.begin(), L.end(),
+		d, e,omega,cb,cf
+	);
 
 	this_state svLower;
 	this_state svUpper;
@@ -55,43 +67,56 @@ Rcpp::List tss_probforage_energygain_optimize(
 	double PredatorWL = System.get_predator_fitness(svLower);
 	double PredatorWH = System.get_predator_fitness(svUpper);
 
-	Rcpp::NumericVector PreyL(vLower.begin(), vLower.end());
-	Rcpp::NumericVector PreyH(vUpper.begin(), vUpper.end());
+	double PreyW = 0.0;
+	double PredatorW = 0.0;
+	Rcpp::NumericVector Prey(vLower.begin(), vLower.end());
+	Rcpp::NumericVector Predator(vLower.size());
 
-	Rcpp::NumericVector PredatorL(vLower.size());
-	Rcpp::NumericVector PredatorH(vLower.size());
-
-	Rcpp::NumericVector rf(vLower.size());
 	Rcpp::NumericVector Thr(vLower.size());
-	Rcpp::NumericVector m0(vLower.size());
-	Rcpp::NumericVector mF(vLower.size());
-	Rcpp::NumericVector m1(vLower.size());
-	Rcpp::NumericVector PR(vLower.size());
-	Rcpp::NumericVector PC(vLower.size());
-	for(unsigned int i = 0; i < System.size(); ++i){
-		const auto& TimeInfo = System.at(i);
-		PredatorL[i] = TimeInfo.predator_strategy(svLower[i]);
-		PredatorH[i] = TimeInfo.predator_strategy(svUpper[i]);
-		Thr[i] = TimeInfo.f_threshold();
-		rf[i] = TimeInfo.prey_reward(2);
-		m0[i] = TimeInfo.prey_cost(0);
-		mF[i] = TimeInfo.prey_cost(1);
-		m1[i] = TimeInfo.prey_cost(2);
-		PR[i] = TimeInfo.predator_reward(2);
-		PC[i] = TimeInfo.predator_cost();
+	Rcpp::NumericVector PreyReward(vLower.size());
+	Rcpp::NumericVector PreyCost(vLower.size());
+	Rcpp::NumericVector PredatorReward(vLower.size());
+	Rcpp::NumericVector PredatorCost(vLower.size());
+
+	// Lower
+	if(PreyWL>PreyWH) {
+		PreyW = PreyWL;
+		PredatorW = PredatorWL;
+		for(unsigned int i = 0; i < System.size(); ++i) {
+			const auto& TimeInfo = System.at(i);
+			Prey[i] = TimeInfo.prey_strategy(svLower[i]);
+			Predator[i] = TimeInfo.predator_strategy(svLower[i]);
+			Thr[i] = TimeInfo.f_threshold();
+			PreyReward[i] = TimeInfo.prey_reward(svLower[i]);
+			PreyCost[i] = TimeInfo.prey_cost(svLower[i]);
+			PredatorReward[i] = TimeInfo.predator_reward(svLower[i]);
+			PredatorCost[i] = TimeInfo.predator_cost(svLower[i]);
+		}
+	}// Upper
+	else {
+		PreyW = PreyWH;
+		PredatorW = PredatorWH;
+		for(unsigned int i = 0; i < System.size(); ++i) {
+			const auto& TimeInfo = System.at(i);
+			Prey[i] = TimeInfo.prey_strategy(svUpper[i]);
+			Predator[i] = TimeInfo.predator_strategy(svUpper[i]);
+			Thr[i] = TimeInfo.f_threshold();
+			PreyReward[i] = TimeInfo.prey_reward(svUpper[i]);
+			PreyCost[i] = TimeInfo.prey_cost(svUpper[i]);
+			PredatorReward[i] = TimeInfo.predator_reward(svUpper[i]);
+			PredatorCost[i] = TimeInfo.predator_cost(svUpper[i]);
+		}
 	}
 
 	return Rcpp::List::create(
-		Rcpp::Named("Prey") = PreyWL>PreyWH? PreyL: PreyH,
-		Rcpp::Named("Predator") = PreyWL>PreyWH? PredatorL: PredatorH,
-		Rcpp::Named("PreyW") = PreyWL>PreyWH? PreyWL : PreyWH,
-		Rcpp::Named("PredatorW") = PreyWL>PreyWH? PredatorWL: PredatorWH,
+		Rcpp::Named("Prey") = Prey,
+		Rcpp::Named("Predator") = Predator,
+		Rcpp::Named("PreyW") = PreyW,
+		Rcpp::Named("PredatorW") = PredatorW,
 		Rcpp::Named("ThresholdPreyFreq") = Thr,
-		Rcpp::Named("PreyReward") = rf,
-		Rcpp::Named("PreyCost0") = m0,
-		Rcpp::Named("PreyCostF") = mF,
-		Rcpp::Named("PreyCost1") = m1,
-		Rcpp::Named("PredatorReward1") = PR,
-		Rcpp::Named("PredatorCost") = PC
+		Rcpp::Named("PreyReward") = PreyReward,
+		Rcpp::Named("PreyCost") = PreyCost,
+		Rcpp::Named("PredatorReward") = PredatorReward,
+		Rcpp::Named("PredatorCost") = PredatorCost
 	);
 }

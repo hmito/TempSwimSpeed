@@ -75,7 +75,7 @@ namespace tempss{
 			double m1;			//mortality under f=1
 		public:
 			template<typename predation>
-			time_info(const predation& Predation_, double v_, double u_, double k_, double c_, double l_, double d_, double e_, double cb_, double cf_)
+			time_info(const predation& Predation_, double v_, double u_, double k_, double c_, double l_, double d_, double e_, double omega_, double cb_, double cf_)
 				: v(v_)
 				, u(u_)
 				, k(k_)
@@ -101,7 +101,7 @@ namespace tempss{
 					m1 = p1 * d / (1 + std::numeric_limits<double>::min()) + cb + cf;
 					mF = m0 + cb + cf;
 					r0 = 0;
-					r1 = k*u;
+					r1 = k*((1-omega_)+omega_*u);
 					rF = 0;
 				} else if(f_thr >= 1.0){
 					// xF == x1
@@ -112,8 +112,8 @@ namespace tempss{
 					m1 = 0.0 + cb + cf;
 					mF = m1 + cb + cf;
 					r0 = 0;
-					r1 = k*u;
-					rF = k*u;
+					r1 = k*((1-omega_)+omega_*u);
+					rF = k*((1-omega_)+omega_*u);
 				} else{
 					p0 = 0.0;
 					pF = 0.0;
@@ -122,8 +122,8 @@ namespace tempss{
 					m1 = p1 * d / (1.0 + std::numeric_limits<double>::min()) + cb + cf;
 					mF = 0.0 + cb + cf*f_thr;
 					r0 = 0;
-					r1 = k*u;
-					rF = k*u*f_thr;
+					r1 = k*((1-omega_)+omega_*u);
+					rF = k*((1-omega_)+omega_*u)*f_thr;
 				}
 			}
 		public:
@@ -138,7 +138,7 @@ namespace tempss{
 				else return p1;
 			}
 			double predator_cost(state_element s)const{
-				return c*predator_strategy();
+				return c*predator_strategy(s);
 			}
 			double prey_strategy(state_element s)const{
 				if(s == 0)return 0.0;
@@ -174,7 +174,7 @@ namespace tempss{
 			iterator KBeg, iterator KEnd, 
 			iterator CBeg, iterator CEnd,
 			iterator LBeg, iterator LEnd, 
-			double d_, double e_, double cb_, double cf_)
+			double d_, double e_, double omega_, double cb_, double cf_)
 			: PreyFitness(std::move(PreyFitness_))
 			, PredatorFitness(std::move(PredatorFitness_)){
 			if(std::distance(VBeg, VEnd) != std::distance(UBeg, UEnd)
@@ -186,7 +186,7 @@ namespace tempss{
 			}
 
 			for (; VBeg != VEnd; ++VBeg, ++UBeg, ++KBeg, ++CBeg, ++LBeg) {
-				Container.emplace_back(Predation_, *VBeg, *UBeg, *KBeg, *CBeg, *LBeg, d_, e_,cb_, cf_);
+				Container.emplace_back(Predation_, *VBeg, *UBeg, *KBeg, *CBeg, *LBeg, d_, e_, omega_, cb_, cf_);
 			}
 		}
 		std::pair<state,state> operator()(void)const{
@@ -338,15 +338,6 @@ namespace tempss{
 			double lambda = 1 - std::exp(omega*(v - u));
 			return 1 / (s / v / f / lambda + h);
 		}
-	};
-
-	//prey reward linearly increase with the prey speed
-	struct linear_prey_reward {
-	private:
-		double k;
-	public:
-		linear_prey_reward(double k_) :k(k_) {}
-		double operator()(double u) const { return k*u; }
 	};
 
 	//predator foraging cost is constant

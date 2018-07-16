@@ -31,6 +31,8 @@ L = 0.2+0.8*exp(-2.0*cos(2*pi*t/tnum))/exp(2.0)	#influence of light on the preda
 #following three parameters determine the prey traits
 e = 0.0		#relative risk of predation for resting prey
 d = 0.001		#relative density of predator/prey
+#[NEW 18/07/16] influence of swim speed on foraging efficiency
+omega = 0	#obtained reward is alpha*((1-omega)+omega*U)
 #following two parameters determine the predation rate: a*(v-u)^b / {1 + h*a*(v-u)^b} 
 b = 3.0		#non-linear influence of speed difference
 h = 2.0		#handling time for predation a prey
@@ -64,7 +66,7 @@ cf	= 0.0001	#foraging cost for prey (should pay only for foraging)
 #	PreyCost0	Cost of prey caused by predation when f=0
 #	PreyCostF	Cost of prey caused by predation when f=f*
 #	PreyCost1	Cost of prey caused by predation f=1
-Ans = tss_probforage_energygain_optimize(V, U, K, C, L, d, e, b, h,cb,cf)
+Ans = tss_probforage_energygain_optimize(V, U, K, C, L, d, e, omega, b, h,cb,cf)
 
 
 plot(0,0,type="n",xlim=c(0,tnum),ylim=c(0,max(c(vmax,umax))))
@@ -92,9 +94,9 @@ points(1:length(Ans$Prey)+0.5,Ans$ThresholdPreyFreq)
 barplot(rbind(Ans$Predator),xlab="time")
 
 #Mortality rate at each time step
-plot(Ans$PreyCost1,type="b",pch=19,xlab="time",ylab= "predation risk", col="red")
-lines(Ans$PreyCostF,type="b",pch=19,xlab="time",ylab= "predation risk", col="green")
-lines(Ans$PreyCost0,type="b",pch=19,xlab="time",ylab= "predation risk")
+plot(rep(1:length(Ans$PreyCost),times=2),c(Ans$PreyCost,Ans$PredatorCost),type="n",pch=19,xlab="time",ylab= "predation risk", col="red")
+#lines(Ans$PreyCostF,type="b",pch=19,xlab="time",ylab= "predation risk", col="green")
+lines(Ans$PreyCost,type="b",pch=19,xlab="time",ylab= "predation risk",col="red")
 lines(Ans$PreyReward,type="b",pch=19,xlab="time",ylab= "predation risk",col="blue")
 
 plot(Ans$PredatorReward,type="b",pch=19,xlab="time",ylab= "predation risk",col="blue")
