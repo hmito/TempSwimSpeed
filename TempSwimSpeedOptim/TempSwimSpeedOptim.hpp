@@ -137,13 +137,14 @@ namespace tempss{
 				else if(s == 1)return pF;
 				else return p1;
 			}
-			double predator_cost()const{ return c; }
+			double predator_cost(state_element s)const{
+				return c*predator_strategy();
+			}
 			double prey_strategy(state_element s)const{
 				if(s == 0)return 0.0;
 				else if(s == 1)return f_thr;
 				else return 1.0;
 			}
-			bool is_two_step()const{ return (0.0 < f_thr && f_thr < 1.0); }
 			double prey_reward(state_element s)const{
 				if(s == 0)return r0;
 				else if(s == 1)return rF;
@@ -154,6 +155,7 @@ namespace tempss{
 				else if(s == 1)return mF;
 				else return m1;
 			}
+			bool is_two_step()const{ return (0.0 < f_thr && f_thr < 1.0); }
 			double f_threshold()const{ return f_thr; }
 		};
 		using container = std::vector<time_info >;
@@ -267,7 +269,7 @@ namespace tempss{
 			double M = 0;
 			for(unsigned int i = 0; i < x.size(); ++i){
 				R += Container[i].predator_reward(x[i]);
-				M += Container[i].predator_cost();
+				M += Container[i].predator_cost(x[i]);
 			}
 
 			return PredatorFitness(R, M);
