@@ -296,7 +296,7 @@ namespace tempss{
 			, h(h_){
 		}
 		double operator()(double pf, double v, double u, double l) const{
-			if(pf <= 0 || v <= 0 || v<=u)return 0.0;
+			if(pf <= 0 || v <= 0)return 0.0;
 			double gamma = a*l*std::pow(v - u, b);
 			return gamma * pf / (1 + gamma*pf*h);
 		}
@@ -315,7 +315,7 @@ namespace tempss{
 			, h(h_) {
 		}
 		double operator()(double f, double v, double u) const {
-			if (f <= 0 || v <= 0)return 0.;
+			if (f <= 0 || v <= 0 || v <= u )return 0.;
 			return 1 / (s / v / f + d / (v - u) + h);
 		}
 	};
