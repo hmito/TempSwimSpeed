@@ -16,7 +16,8 @@ namespace tempss{
 		}
 		template<typename T>
 		double find_predation_threshold_impl(const T& val, double v, double u, double l, double c, ...){
-			auto Func = [=](double f) {return c - f*val(f, v, u, l); };
+			//val should be a monotonically increasing function for f.
+			auto Func = [=](double f) {return c - val(f, v, u, l); };
 			double v1 = Func(1);
 			double v0 = Func(0);
 			if(v1 < 0 && v0 < 0)return 0;
@@ -86,44 +87,51 @@ namespace tempss{
 				, cb(cb_)
 				, cf(cf_){
 
-				//necessary effective fraction of prey (i.e., f + r*(1-f))
-				double pf_thr = find_predation_threshold(Predation_, v, u, l, c);
+				//necessary effective fraction of prey (i.e., f + e*(1-f))
+				//F: fraction of attackable prey for predator
+				//f: fraction of foraging prey
+				//	F = f + e*(1-f)
+				//	f = (F-e)/(1-e) 
+				double F_thr = find_predation_threshold(Predation_, v, u, l, c);
+				f_thr = (F_thr - e) / (1 - e + std::numeric_limits<double>::min());
 
-				if(pf_thr <= e)f_thr = -1e-10;
-				else f_thr = std::min((pf_thr - e) / (1 - e + std::numeric_limits<double>::min()), 1.0);
-
-				if(f_thr < 0){
-					// xF == x0
+				if(f_thr <= 0){
+					//predator always forage regadless of prey behaviour
 					p0 = Predation_(e, v, u, l);
-					pF = p0;
 					p1 = Predation_(1, v, u, l);
-					m0 = p0 * d / (e + std::numeric_limits<double>::min()) + cb;
-					m1 = p1 * d / (1 + std::numeric_limits<double>::min()) + cb + cf;
-					mF = m0 + cb + cf;
+					m0 = p0 * d + cb;
+					m1 = p1 * d + cb + cf;
 					r0 = 0;
 					r1 = k*(1+omega_*u);
-					rF = 0;
+
+					// xF == x0
+					pF = p0;
+					mF = m0;
+					rF = r0;
 				} else if(f_thr >= 1.0){
-					// xF == x1
+					//predator always rest regadless of prey behaviour
 					p0 = 0.0;
-					pF = 0.0;
 					p1 = 0.0;
 					m0 = 0.0 + cb ;
 					m1 = 0.0 + cb + cf;
-					mF = m1 + cb + cf;
 					r0 = 0;
 					r1 = k*(1+omega_*u);
-					rF = k*(1+omega_*u);
+
+					// xF == x1
+					pF = p1;
+					mF = m1;
+					rF = r1;
 				} else{
+					//predator forage only when f > f_thr (i.e., f == 1)
 					p0 = 0.0;
 					pF = 0.0;
 					p1 = Predation_(1, v, u, l);
 					m0 = 0.0 + cb;
-					m1 = p1 * d / (1.0 + std::numeric_limits<double>::min()) + cb + cf;
 					mF = 0.0 + cb + cf*f_thr;
+					m1 = p1*d + cb + cf;
 					r0 = 0;
-					r1 = k*(1+omega_*u);
 					rF = k*(1+omega_*u)*f_thr;
+					r1 = k*(1+omega_*u);
 				}
 			}
 		public:
@@ -185,8 +193,8 @@ namespace tempss{
 				throw std::exception();
 			}
 
-			for (; VBeg != VEnd; ++VBeg, ++UBeg, ++KBeg, ++CBeg, ++LBeg) {
-				Container.emplace_back(Predation_, *VBeg, *UBeg, *KBeg, *CBeg, *LBeg, d_, e_, omega_, cb_, cf_);
+			while(VBeg != VEnd) {
+				Container.emplace_back(Predation_, *VBeg++, *UBeg++, *KBeg++, *CBeg++, *LBeg++, d_, e_, omega_, cb_, cf_);
 			}
 		}
 		std::pair<state,state> operator()(void)const{
@@ -195,17 +203,19 @@ namespace tempss{
 			//Add data
 			for(const auto& Info : Container){
 				if(Info.is_two_step()){
+					//predator's forage only when prey fully use this time
+					//	set difference between no-use and partial-use 
 					Data.push_back(
 						(Info.prey_reward(1) - Info.prey_reward(0)) / std::max(Info.prey_cost(1) - Info.prey_cost(0), std::numeric_limits<double>::min())
 					);
 				} else{
+					//predator's behaviour is independent from prey's behaviour
+					//	set difference between no-use and full-use
 					Data.push_back(
 						(Info.prey_reward(2) - Info.prey_reward(0)) / std::max(Info.prey_cost(2) - Info.prey_cost(0), std::numeric_limits<double>::min())
 					);
 				}
 			}
-
-			//std::sort(Data.begin(), Data.end(), [](const data_t& v1, const data_t& v2){return std::get<1>(v1) > std::get<1>(v2); });
 
 			state Lower(Container.size(), 0);
 			state Upper(Container.size(), 0);
@@ -215,21 +225,19 @@ namespace tempss{
 				auto& Info = Container.at(No);
 
 				//Update Strategy
-				if(Info.is_two_step()){
-					++Upper[No];
+				if(Info.is_two_step() && Upper[No]==0){
+					//change from no-use to partial-use
+					Upper[No] = 1;
+					//set difference between partial-use and full-use 
+					Data[No] = (Info.prey_reward(2) - Info.prey_reward(1)) / (Info.prey_cost(2) - Info.prey_cost(1) + std::numeric_limits<double>::min());
 				} else{
+					//change from no-use/partial-use to full-use
 					Upper[No] = 2;
-				}
-
-				//Update DataSet
-				if(Upper[No] == 1){
-					Data[No] = (Info.prey_reward(2) - Info.prey_reward(0)) / (Info.prey_cost(2) - Info.prey_cost(0) + std::numeric_limits<double>::min());
-				} else{
+					//set drdm to zero (i.e., no reward)
 					Data[No] = 0.0;
 				}
-				
 
-				//Update next best step No
+				//Find next best step No
 				auto NewNo = std::distance(Data.begin(), std::max_element(Data.begin(), Data.end()));
 
 				//Check if Fitness is still increasing
@@ -296,9 +304,8 @@ namespace tempss{
 			, h(h_){
 		}
 		double operator()(double pf, double v, double u, double l) const{
-			if(pf <= 0 || v <= 0)return 0.0;
-			double gamma = a*l*std::pow(v - u, b);
-			return gamma * pf / (1 + gamma*pf*h);
+			double gamma =  a*l*pf*(b > 0 ? std::pow(std::max(v - u,0.0), b):1.0);
+			return gamma / (1 + gamma*h);
 		}
 	};
 
@@ -316,7 +323,7 @@ namespace tempss{
 		}
 		double operator()(double f, double v, double u) const {
 			if (f <= 0 || v <= 0 || v <= u )return 0.;
-			return 1 / (s / v / f + d / (v - u) + h);
+			return 1 / (s / (v*f) + d / (v - u) + h);
 		}
 	};
 
@@ -340,15 +347,6 @@ namespace tempss{
 		}
 	};
 
-	//predator foraging cost is constant
-	struct constant_predator_cost {
-	private:
-		double c;
-	public:
-		constant_predator_cost(double c_) :c(c_) {}
-		double operator()(double v) const { return c; }
-	};
-
 	//fitness reward-mortality ratio with basic mortality rate: {1 - alpha*exp(-beta*r)} / {m + base_m}
 	struct exp_ratio_fitness{
 	private:
@@ -367,6 +365,7 @@ namespace tempss{
 			return (1 - std::exp(-alpha*r)) / ((base_m + m)*alpha*std::exp(-alpha*r) + std::numeric_limits<double>::min());
 		}
 	};
+
 	//fitness reward-mortality ratio with basic mortality rate: {1 - alpha*exp(-beta*r)} / {m + base_m}
 	struct linear_ratio_fitness{
 	private:
@@ -374,7 +373,7 @@ namespace tempss{
 	public:
 		linear_ratio_fitness(double base_m_) :base_m(base_m_){}
 		double operator()(double r, double m) const{
-			return r / (m + base_m);
+			return r / (base_m + m);
 		}
 		bool is_increasing(double r, double m, double drdm)const{
 			return (base_m + m)*drdm > r;
@@ -383,6 +382,7 @@ namespace tempss{
 			return r / (base_m + m);
 		}
 	};
+
 	//fitness reward-mortality ratio with basic mortality rate: {1 - alpha*exp(-beta*r)} / {m + base_m}
 	struct difference_fitness{
 	public:
