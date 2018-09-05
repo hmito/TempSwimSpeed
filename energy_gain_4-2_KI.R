@@ -3,9 +3,9 @@ library("Rcpp")
 library("BH")
 sourceCpp("TempSwimSpeedOptim.cpp")
 
-
-#mathematically same with calc.shark.temp function if we set
-#   mass = 1/(2*0.6*/(sharkradius*log(sharkradius/(sharkradius-skinthickness)))*0.031593/60 )
+#change of body size based on the mass of individual
+#	mathematically same with calc.shark.temp function if we set
+#  	mass = 1/(2*0.6*/(sharkradius*log(sharkradius/(sharkradius-skinthickness)))*0.031593/60 )
 calc.bodytemp = function(watertemp, mass, error = 1e-10){
 	bodytemp=rep(mean(watertemp),length(watertemp))
 	for (i in c(1:1000)) {
@@ -23,28 +23,64 @@ calc.bodytemp = function(watertemp, mass, error = 1e-10){
 	return(rep(NA,length(watertemp)))
 }
 
+#light effect
+calc.light_effect = function(t,lmin,lmax){
+	lwave=exp(-1.0*cos(2*pi*(length(t)/2-t)/length(t)))/exp(1.0)
+	return(lmin+(lmax-lmin)*lwave)
+}
+
 #Summarized figure
-plot_sim_result = function(Ans,main){
+plot.sim_result = function(Ans,title){
 	Prey= Ans$Prey
 	Predator = Ans$Predator
 	plot(0,0,type="n",
-		  xlab="time (t)",ylab="foraging predator (red), prey (blue)",
+		  #		  xlab="time (t)",ylab="foraging predator (red), prey (blue)",
+		  xlab="",ylab="",
 		  xlim=c(0,tnum),ylim=c(-0.02,1.02),       
-		  main=main
+		  main=title
 	)
 	lines(t,Prey,col="blue",lwd=3)
 	lines(t,Predator*0.99,col="red",lwd=3,lty="dashed")
 }
 
+#plot pair of temp and V,U,L
+plot.assumption=function(t,watertemp,sharktemp,V,U,L){
+	# assumption figure
+	par(mfrow=c(1,2))
+	plot(t,watertemp,col="blue",pch=15, xlab="time (t)",ylab="temperature")
+	lines(t,watertemp,col="blue",lty=1)
+	#	text(7,25.0,bquote('w'['t']))
+	points(t,sharktemp,col="red",pch=16)
+	lines(t,sharktemp,col="red",lty=1)
+	#points(t,calc.bodytemp(watertemp,4),col="purple",pch=16)
+	#lines(t,calc.bodytemp(watertemp,4),col="purple",lty=1)
+	#points(t,calc.bodytemp(watertemp,25),col="orange",pch=16)
+	#lines(t,calc.bodytemp(watertemp,25),col="orange",lty=1)
+	#	text(4,28,bquote('s'['t']))
+	par(new =T)
+	plot(t,L,col="orange",pch=17, type = "p", axes = FALSE, ylab = "",ylim=c(0,max(L)),main="temperature")
+	lines(t,L,col="orange",lty=1)
+	#	text(5,0.25,bquote(lambda['t']))
+	axis(4)
+	
+	plot(t,V,col="red",pch=16,xlim=c(0,tnum),ylim=c(min(V-U),max(c(V,U))),
+		  xlab="time (t)",ylab="burst speed",main="swim speed")
+	segments(-100,0,100,0)
+	lines(t,V,col="red",lty=1)
+	#	text(15,2.3,bquote('v'['t']))
+	points(t,U,col="blue",pch=15)
+	lines(t,U,col="blue",lty=1)
+	#	text(18,1.9,bquote('u'['t']))
+	points(t,V-U,col="purple",pch=2)
+	lines(t,V-U,col="purple",lty=1)
+	#	text(17,0.9,bquote(list('v'['t'],'- u'['t'])))
+}
+
+#=== constant parameters ===
+#set time
 pi = acos(-1)
 tnum = 24 # time of day
 t = 1:tnum-0.5
-
-# influence of light on the predation rate
-lmin=1.0 # lowest
-lmax=1.0 # highest
-lwave=exp(-1.0*cos(2*pi*(tnum/2-t)/tnum))/exp(1.0)
-L = lmin+(lmax-lmin)*lwave
 
 # temperature of the water
 tempmaxt=15
@@ -52,78 +88,119 @@ tmin = 25
 tmax = 30
 watertemp = tmin+(tmax-tmin)*(cos(2*pi*(t-tempmaxt)/tnum)+1)/2
 
+#amount of food availability for prey
+alpha = rep(1.0, length=tnum)
+# baseline mortality for prey (should pay both for resting and foraging)
+mb = 0.1	
+#average prey swim speed
+uave = 1.0
+#metabolic cost for predators when they go out for predation
+C = rep(0.1, length=tnum)
+
+#=== plot with changing mx (mortality by other predator) and my (mortality by shark)
+omega = 1.0
+beta = 1.0
+phi = 0.1
+h = 0.1
+
 # work out the shark's body temperature
-mass = 5
-sharktemp=calc.bodytemp(watertemp,mass) #just forsimplify the parameters
+#    mass is kind of the size of shark (like sharkradius)
+#    I used this just for simplifying parameters
+mass = 10 
+sharktemp=calc.bodytemp(watertemp,mass) 
 #bodytemp=calc.shark.temp(tnum,watertemp,sharkradius,skinthickness)
 
 # prey immediately track temperature
-uave = 1.0
-uamp = 0.5
-U = uave + uamp*(watertemp-(tmax+tmin)/2)/(tmax-tmin)
+utemp = 0.1 #influence of bodytemp
+U = uave + utemp*(watertemp-(tmax+tmin)/2)
 
 # sharks track their own temperature
-vave = 1.2
-vamp = 1.0
-V = vave + vamp*(sharktemp-(tmax+tmin)/2)/(tmax-tmin)
+vave = 1.2  #average swim speed (prey is always 1.0)
+vtemp = 0.1 #influence of bodytemp
+V = vave + vtemp*(sharktemp-(tmax+tmin)/2)
 
-# assumption figure
-par(mfrow=c(1,2))
-plot(t,watertemp,col="blue",pch=15,,xlim=c(0,tnum),ylim=c(20,max(c(watertemp,sharktemp))),
-	  xlab="time (t)",ylab="temperature")
-lines(t,watertemp,col="blue",lty=1)
-text(7,25.0,bquote('w'['t']))
-points(t,sharktemp,col="red",pch=16)
-lines(t,sharktemp,col="red",lty=1)
-#points(t,calc.bodytemp(watertemp,4),col="purple",pch=16)
-#lines(t,calc.bodytemp(watertemp,4),col="purple",lty=1)
-#points(t,calc.bodytemp(watertemp,25),col="orange",pch=16)
-#lines(t,calc.bodytemp(watertemp,25),col="orange",lty=1)
-text(4,28,bquote('s'['t']))
-par(new =T)
-plot(t,L,col="orange",pch=17, type = "p", axes = FALSE, ylab = "",ylim=c(0,1.2))
-lines(t,L,col="orange",lty=1)
-text(5,0.25,bquote(lambda['t']))
-axis(4)
+# calc light effect, or predation efficiency
+#    e.g., in muddy (inclear) water this value will increase?
+lmin = 1.0
+lmax = 1.0
+L = calc.light_effect(t,lmin,lmax)
 
-plot(t,V,col="red",pch=16,xlim=c(0,tnum),ylim=c(0,max(c(V,U))),
-	  xlab="time (t)",ylab="burst speed")
-lines(t,V,col="red",lty=1)
-text(15,2.3,bquote('v'['t']))
-points(t,U,col="blue",pch=15)
-lines(t,U,col="blue",lty=1)
-text(18,1.9,bquote('u'['t']))
-points(t,V-U,col="purple",pch=2)
-lines(t,V-U,col="purple",lty=1)
-text(17,0.9,bquote(list('v'['t'],'- u'['t'])))
+plot.assumption(t, watertemp, sharktemp, V, U, L)
 
-
-#=== simulation parameters ===
-#amount of food availability for prey
-alpha = rep(1.0, length=tnum)
-#metabolic cost for predators when they go out for predation
-C = rep(0.05, length=tnum)	
-#influence of swim speed on foraging efficiency for prey
-omega = 0.1	#obtained reward is alpha*(1+omega*u)
-#relative risk of predation for resting prey
-phi = 0.1
-
-#the predation rate: L*F*(v-u)^beta / {1 + h*L*F*(v-u)^beta}
-#	L: influence of light on the predation rate
-#	F: effective prey density, i.e., f + phi*(1-f)
-beta = 1.0	#non-linear influence of speed difference on the predation rate 
-h = 0.2	   #handling time for predation a prey
-
-#following twp parameters determine the cost of prey
-mb = 0.01	# baseline cost for prey (should pay both for resting and foraging)
-mx = 0.05	# foraging cost for prey (should pay only for foraging)
-my = 0.025 	# relative density of predator/prey
-
-x11()
-par(mfrow=c(7,7),mex=0.5)
-for(mx in c(0.01,0.02,0.04,0.08,0.16,0.32,0.64)){
-for(my in c(0.01,0.02,0.04,0.08,0.16,0.32,0.64)){
+par(mfrow=c(5,5),mex=0.3)
+for(my in seq(0.0,0.6,length=5)){
+for(mx in seq(0.0,0.6,length=5)){
 	Ans = tss_probforage_energygain_optimize_linear(V, U, alpha, C, L, my, phi, omega, beta, h, mb,mx)
-	plot_sim_result(Ans,bquote(list(omega==.(omega),beta==.(beta),'m'['y']==.(my),'m'['x']==.(mx))))
+	plot.sim_result(Ans,bquote(list('m'['x']==.(mx),'m'['y']==.(my))))
 }
+}
+
+
+#=== plot with changing mass (sharkradius) and phi ===
+omega = 0.5
+beta = 1.0
+phi = 0.0
+h = 0.1
+
+mx = 0.5
+my = 0.5
+vave=1.2
+
+# calc light effect, or predation efficiency
+#    e.g., in muddy (inclear) water this value will increase?
+lmin = 1.0
+lmax = 1.0
+L = calc.light_effect(t,lmin,lmax)
+
+par(mfrow=c(6,4),mex=0.3)
+#plot(0,0,type="n",axes=FALSE,xlab="",ylab="")
+for(mass in c(1,4,16,64)){
+	# work out the shark's body temperature
+	sharktemp=calc.bodytemp(watertemp,mass) #just for simplifying parameters
+	
+	plot(t,watertemp,col="blue",pch=15, xlab="",ylab="")
+	lines(t,watertemp,col="blue",lty=1)
+	points(t,sharktemp,col="red",pch=16)
+	lines(t,sharktemp,col="red",lty=1)
+}
+for(phi in seq(0.0,1.0,length=5)){
+	for(mass in c(1,4,16,64)){
+		# work out the shark's body temperature
+		sharktemp=calc.bodytemp(watertemp,mass) #just for simplifying parameters
+		V = vave + vtemp*(sharktemp-(tmax+tmin)/2)
+		
+		Ans = tss_probforage_energygain_optimize_linear(V, U, alpha, C, L, my, phi, omega, beta, h, mb,mx)
+		plot.sim_result(Ans,bquote(list('mass'==.(mass),varphi==.(phi))))
+	}
+}
+
+
+#=== plot with changing mass (sharkradius) and vave (average shark swim speed) ===
+omega = 0.1
+beta = 1
+phi = 0.0
+h = 0.1
+
+mx = 0.4
+my = 0.4
+par(mfrow=c(5,4),mex=0.3)
+#plot(0,0,type="n",axes=FALSE,xlab="",ylab="")
+for(mass in c(1,4,16,64)){
+	# work out the shark's body temperature
+	sharktemp=calc.bodytemp(watertemp,mass) #just for simplifying parameters
+	
+	plot(t,watertemp,col="blue",pch=15, xlab="",ylab="")
+	lines(t,watertemp,col="blue",lty=1)
+	points(t,sharktemp,col="red",pch=16)
+	lines(t,sharktemp,col="red",lty=1)
+}
+for(vave in seq(0.4,length=4,by=0.4)){
+	for(mass in c(1,4,16,64)){
+		# work out the shark's body temperature
+		sharktemp=calc.bodytemp(watertemp,mass) #just for simplifying parameters
+		V = vave + vtemp*(sharktemp-(tmax+tmin)/2)
+		
+		Ans = tss_probforage_energygain_optimize_linear(V, U, alpha, C, L, my, phi, omega, beta, h, mb,mx)
+		plot.sim_result(Ans,bquote(list('mass'==.(mass),'v'['ave']==.(vave))))
+	}
 }
