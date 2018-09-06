@@ -1,0 +1,92 @@
+---
+title: "Analysis of shark activity model"
+author: "Koichi Ito"
+date: "2018/9/4"
+output: html_document
+---
+
+#Method
+
+
+#Results
+
+
+#Appendix
+
+## constant parameters
+We can ignore the following parameter values for considering the influence of parameters.
+
+- foraging efficiency of prey (alpha): no influence on optimal strategy as long as alpha is constant for t
+- basic mortality rate of prey (mb): just determine the scale of mx and my; mx/mb and my/mb have influences.
+- average swimspeed of prey (uave): just determine the scale of v; only relative speed (v/uave) has influence.
+- cost of predation for predator (C): just determine the scale of lmax, lmin (althought smaller lmax&lmin also reduce the relative influence of 'my'). lmax and lmin define the predation efficiency.
+
+```{r constant_parameters}
+source(file = "shark_activity_functions.R")
+#=== constant parameters ===
+#set time
+pi = acos(-1)
+tnum = 24 # time of day
+t = 1:tnum-0.5
+
+# temperature of the water
+tempmaxt=15
+tmin = 25
+tmax = 30
+watertemp = tmin+(tmax-tmin)*(cos(2*pi*(t-tempmaxt)/tnum)+1)/2
+
+# amount of food availability for prey
+alpha = rep(1.0, length=tnum)
+# baseline mortality for prey (should pay both for resting and foraging)
+mb = 0.1	
+# average prey swim speed
+uave = 1.0
+# metabolic cost for predators when they go out for predation
+C = rep(0.1, length=tnum)
+```
+
+Then, we have following parameters.
+
+- omega: influence of prey's swimspeed on its foraging efficiency
+- beta: 
+phi = 0.1
+h = 0.1
+
+# work out the shark's body temperature
+#    mass is kind of the size of shark (like sharkradius)
+#    I used this just for simplifying parameters
+mass = 10 
+sharktemp=calc.bodytemp(watertemp,mass) 
+#bodytemp=calc.shark.temp(tnum,watertemp,sharkradius,skinthickness)
+
+# prey immediately track temperature
+utemp = 0.1 #influence of bodytemp
+U = uave + utemp*(watertemp-(tmax+tmin)/2)
+
+# sharks track their own temperature
+vave = 1.2  #average swim speed (prey is always 1.0)
+vtemp = 0.1 #influence of bodytemp
+V = vave + vtemp*(sharktemp-(tmax+tmin)/2)
+
+# calc light effect, or predation efficiency
+#    e.g., in muddy (inclear) water this value will increase?
+lmin = 1.0
+lmax = 1.0
+L = calc.light_effect(t,lmin,lmax)
+
+
+## categorization of shark activity pattern
+For categorizing the various shark-activity patterns, I divided one day into three time zone, i.e., midnight (20<t<=4), beforenoon (4<t<=12) and afternoon (12<t<=20). 
+
+#Appendix
+
+## key three factors
+In this model, there are three factors influence on the activity time of sharks. 
+
+1. prey bodytemp = watertemp. Peak is at t=15. 
+2. influence of light, which reduce the predation efficiency. Peak is at t=12.
+3. difference of bodytemp between shark and prey. Peak is about t= 17~3, depend on sharks' bodymass (sharkradius). 
+
+Balance of these three factors determine the active time.
+
+## influence of parameters

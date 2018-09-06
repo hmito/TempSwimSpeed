@@ -99,8 +99,8 @@ namespace tempss{
 					//predator always forage regadless of prey behaviour
 					p0 = Predation_(e, v, u, l);
 					p1 = Predation_(1, v, u, l);
-					m0 = p0 * d + cb;
-					m1 = p1 * d + cb + cf;
+					m0 = p0 * d + cf * e + cb;
+					m1 = p1 * d + cf * 1 + cb;
 					r0 = 0;
 					r1 = k*(1+omega_*u);
 
@@ -112,8 +112,8 @@ namespace tempss{
 					//predator always rest regadless of prey behaviour
 					p0 = 0.0;
 					p1 = 0.0;
-					m0 = 0.0 + cb ;
-					m1 = 0.0 + cb + cf;
+					m0 = 0.0 + cf * e + cb;
+					m1 = 0.0 + cf * 1 + cb;
 					r0 = 0;
 					r1 = k*(1+omega_*u);
 
@@ -126,9 +126,9 @@ namespace tempss{
 					p0 = 0.0;
 					pF = 0.0;
 					p1 = Predation_(1, v, u, l);
-					m0 = 0.0 + cb;
-					mF = 0.0 + cb + cf*f_thr;
-					m1 = p1*d + cb + cf;
+					m0 = 0.0 +  cf * e + cb;
+					mF = 0.0 + cf * F_thr + cb ;
+					m1 = p1*d + cf * 1 + cb;
 					r0 = 0;
 					rF = k*(1+omega_*u)*f_thr;
 					r1 = k*(1+omega_*u);
