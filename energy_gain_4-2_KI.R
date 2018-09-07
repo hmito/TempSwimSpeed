@@ -1,233 +1,5 @@
 #load library
-library("Rcpp")
-library("BH")
-sourceCpp("TempSwimSpeedOptim.cpp")
-
-hist.find_peaks = function(hist,min,max,n=101){
-	threshold.mx = matrix(rep(seq(min,max,length=n),each=length(hist)+2),length(hist)+2,n)
-	hist.mx = matrix(rep(c(0,hist,0),times=n),length(hist)+2,n)
-	exist.mx = hist.mx>threshold.mx
-	
-	result = apply(exist.mx[-1,]!=exist.mx[-nrow(exist.mx),],2,sum)/2
-	result.table = table(result)
-	peak.num = as.integer(names(result.table)[order(result.table,decreasing=TRUE)[1]])
-	
-	threshold.no = min((1:n)[result==peak.num])
-	exist.seq = exist.mx[,threshold.no]
-	
-	peaks = data.frame("lower"=NA,"upper"=NA,"top"=NA,"freq"=NA)
-	
-	if(peak.num!=0){
-		boundary = 1
-		
-		lower = (1:(length(exist.seq)-1))[exist.seq[-1]&(!exist.seq[-length(exist.seq)])]
-		upper = (0:(length(exist.seq)))[(!exist.seq[-1])&exist.seq[-length(exist.seq)]]
-		
-		for(peak.pos in 1:peak.num){
-			this.lower = min((boundary:lower[peak.pos])[hist[boundary:lower[peak.pos]]>0])
-			if(peak.pos<peak.num){
-				boundary = (upper[peak.pos]:lower[peak.pos+1])[order(hist[upper[peak.pos]:lower[peak.pos+1]])[1]]
-			}else{
-				boundary = length(hist)
-			}
-			this.upper = max((upper[peak.pos]:(boundary-1))[hist[upper[peak.pos]:(boundary-1)]>0])
-			this.top = (this.lower:this.upper)[order(hist[this.lower:this.upper],decreasing = TRUE)[1]]
-			this.freq = sum(hist[this.lower:this.upper])
-			
-			peaks = rbind(peaks,data.frame("lower"=this.lower,"upper"=this.upper,"top"=this.top,"freq"=this.freq))
-		}
-	}
-	
-	return(peaks[-1,])
-}
-
-#calculate bodytemp depending on body mass
-calc.bodytemp = function(watertemp, mass, error = 1e-10){
-	bodytemp=rep(mean(watertemp),length(watertemp))
-	for (i in c(1:1000)) {
-		prev_bodytemp = bodytemp
-		for (j in 1:length(watertemp)) {
-			bodytemp[(j%%length(watertemp))+1] = bodytemp[j]+(watertemp[j]-bodytemp[j])/mass
-		}
-		
-		#return if the difference from previous iteration is smaller than error
-		if(sum(abs(bodytemp - prev_bodytemp))<error){
-			return(bodytemp)
-		}
-	}
-	#fail to calculate stable bodytemp
-	return(rep(NA,length(watertemp)))
-}
-
-#calculate mass from sharkradius & skinthickness
-#	mathematically same with calc.shark.temp function if we use
-#  	calc.bodytemp(watertemp, calc.mass_for_bodytemp(sharkradius,skinthickness))
-calc.mass_for_bodytemp = function(sharkradius,skinthickness){
-	1/(2*0.6*0.031593/60/(sharkradius*sharkradius*log(sharkradius/(sharkradius-skinthickness))))
-}
-
-#light effect
-calc.light_effect = function(t,lmin,lmax){
-	lwave=exp(-1.0*cos(2*pi*(length(t)/2-t)/length(t)))/exp(1.0)
-	return(lmin+(lmax-lmin)*lwave)
-}
-
-#Summarized figure
-plot.sim_result = function(Ans,title){
-	Prey= Ans$Prey
-	Predator = Ans$Predator
-	plot(0,0,type="n",
-		  #		  xlab="time (t)",ylab="foraging predator (red), prey (blue)",
-		  xlab="",ylab="",
-		  xlim=c(0,tnum),ylim=c(-0.02,1.02),       
-		  main=title
-	)
-	lines(t,Prey,col="blue",lwd=3)
-	lines(t,Predator*0.99,col="red",lwd=3,lty="dashed")
-}
-
-#plot pair of temp and V,U,L
-plot.assumption=function(t,watertemp,sharktemp,V,U,L){
-	# assumption figure
-	par(mfrow=c(1,2))
-	plot(t,watertemp,col="blue",pch=15, xlab="time (t)",ylab="temperature")
-	lines(t,watertemp,col="blue",lty=1)
-	#	text(7,25.0,bquote('w'['t']))
-	points(t,sharktemp,col="red",pch=16)
-	lines(t,sharktemp,col="red",lty=1)
-	#points(t,calc.bodytemp(watertemp,4),col="purple",pch=16)
-	#lines(t,calc.bodytemp(watertemp,4),col="purple",lty=1)
-	#points(t,calc.bodytemp(watertemp,25),col="orange",pch=16)
-	#lines(t,calc.bodytemp(watertemp,25),col="orange",lty=1)
-	#	text(4,28,bquote('s'['t']))
-	par(new =T)
-	plot(t,L,col="orange",pch=17, type = "p", axes = FALSE, ylab = "",ylim=c(0,max(L)),main="temperature")
-	lines(t,L,col="orange",lty=1)
-	#	text(5,0.25,bquote(lambda['t']))
-	axis(4)
-	
-	plot(t,V,col="red",pch=16,xlim=c(0,tnum),ylim=c(min(V-U),max(c(V,U))),
-		  xlab="time (t)",ylab="burst speed",main="swim speed")
-	segments(-100,0,100,0)
-	lines(t,V,col="red",lty=1)
-	#	text(15,2.3,bquote('v'['t']))
-	points(t,U,col="blue",pch=15)
-	lines(t,U,col="blue",lty=1)
-	#	text(18,1.9,bquote('u'['t']))
-	points(t,V-U,col="purple",pch=2)
-	lines(t,V-U,col="purple",lty=1)
-	#	text(17,0.9,bquote(list('v'['t'],'- u'['t'])))
-}
-
-#peak-based pattern categorization
-allpeak_no.sim_result=function(Ans,ThrPrb=0.20){
-	ans = 0
-	
-	p = Ans$Predator
-	p = (p + c(p[-1],p[1]) + c(p[length(p)],p[-length(p)]))/3
-	
-	if(all(p<=0.25)){
-		return(0)
-	}else if(all(p>0.25)){
-		return(44)
-	}
-	
-	peaks = hist.find_peaks(p,0,0.05)
-	#connect 24-1
-	if(nrow(peaks)>1 && peaks$lower[1]==1 && peaks$upper[nrow(peaks)]==24){
-		peaks$lower[1] = peaks$lower[nrow(peaks)]
-		peaks$freq[1] = peaks$freq[1] + peaks$freq[nrow(peaks)]
-		peaks = peaks[-nrow(peaks),]
-	}
-	
-	peaks = peaks[peaks$freq/sum(peaks$freq)>ThrPrb,]
-	peaks = peaks[order(peaks$freq),]
-	
-	#--time division--
-	#1:night (20-3)
-	#2:before-noon(4-12)
-	#3:after-noon(12-19)
-	#evening:4:16-21
-	#timediv = c(1,1,1,2,2,2,2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,1,1,1)
-	timediv = c(rep(1,3),rep(2,8),rep(3,8),rep(1,5))
-	ans = 0
-	for(i in 1:nrow(peaks)){
-		ans = ans*100 + 
-			timediv[peaks$lower[i]]*10 + 
-			ifelse(peaks$freq[i]>18 && timediv[peaks$lower[i]]==timediv[peaks$upper[i]],4,timediv[peaks$upper[i]])
-	}
-	
-	return(ans)
-}
-allpeak_no.mode = function(original_no){
-	no = original_no%%100
-	mode = no
-	mode[no==mode]=0	#reset all
-	mode[no==0] =1 #black	: no use
-	mode[no==44]=2 #white	: all use
-	mode[no==32]=3 #cyan		: from afternoon  to beforenoon (rest around noon)
-	mode[no==31]=4 #blue		: from afternoon  to mid-night
-	mode[no==21]=5 #red		: from beforenoon to mid-night (rest early morning)
-	mode[no==22]=6 #darkgreen	: beforenoon
-	mode[no==33]=7 #darkred	: afternoon
-	mode[no==11]=8 #darkblue: midnight
-	mode[no==24]=9 #purple	: late beforenoon to early beforenoon (rest befornoon)
-	mode[no==12]=10 #green: midnight to beforenoon (rest befornoon)
-	mode[no==34]=11 #yellowgreen	: late afternoon to early afternoon (rest afternoon)
-	mode[no==23]=12 #yellow	: beforenoon to afternoon (daytime)
-	mode[no==14]=13 #orange : late midnight to early midnight (rest midnight)
-	
-	sub = (original_no-no)/100
-	submode = sub
-	submode[sub==submode]=0	#reset all
-	submode[sub==22] =1 #green: beforenoon
-	submode[sub==12] =2 #green4: midnight-beforenoon
-	submode[sub>100] =3 #black: more than one sub-peaks
-	
-	return(list(main=mode,sub=submode))
-}
-allpeak_no.color=function(){
-	return(
-		c("grey",
-		  "black",
-		  "white",
-		  "cyan",
-		  "blue",
-		  "red",
-		  "green4",
-		  "red4",
-		  "darkblue",
-		  "purple",
-		  "green",
-		  "yellowgreen",
-		  "yellow",
-		  "orange"
-		)
-	)
-}
-allpeak_no.point=function(x.seq,y.seq,mode,...){
-	submode = mode$sub
-	x = matrix(rep(x.seq,times=length(y.seq)),length(x.seq),length(y.seq))
-	y = matrix(rep(y.seq,each =length(x.seq)),length(x.seq),length(y.seq))
-	
-	x.pos = as.vector(x[submode==1])
-	y.pos = as.vector(y[submode==1])
-	points(x.pos,y.pos,col="green",pch=16,...)
-	
-	x.pos = as.vector(x[submode==2])
-	y.pos = as.vector(y[submode==2])
-	points(x.pos,y.pos,col="green4",pch=16,...)
-	
-	x.pos = as.vector(x[submode==3])
-	y.pos = as.vector(y[submode==3])
-	points(x.pos,y.pos,col="black",pch=17,...)
-}
-allpeak_no.image=function(x.seq,y.seq,mode,...){
-	main = mode$main
-	col = allpeak_no.color()
-	image(x.seq,y.seq,main,zlim=c(0,length(col)-1),col=col,...)
-}
-
+source("shark_activity_functions.R")
 
 #=== constant parameters ===
 #set time
@@ -236,25 +8,92 @@ tnum = 24 # time of day
 t = 1:tnum-0.5
 
 # temperature of the water
-tempmaxt=15
-tmin = 25
-tmax = 30
-watertemp = tmin+(tmax-tmin)*(cos(2*pi*(t-tempmaxt)/tnum)+1)/2
+t_w=15
+wmax = 25
+wmax = 30
+watertemp = wmin+(wmax-wmin)*(cos(2*pi*(t-t_w)/length(t))+1)/2
 
-#amount of food availability for prey
+# amount of food availability for prey
 alpha = rep(1.0, length=tnum)
 # baseline mortality for prey (should pay both for resting and foraging)
-mb = 0.1
-#average prey swim speed
-uave = 1.0
-#metabolic cost for predators when they go out for predation
+mb = 0.1	
+# average prey swim speed
+u0 = 1.0
+# metabolic cost for predators when they go out for predation
 C = rep(0.1, length=tnum)
 
-#=== plot with changing mx (mortality by other predator) and my (mortality by shark)
+
+#=== plot with changing phi and v0
+omega = 1.0	#foraging efficiency increment by speed 
+beta = 1.0 	#predation efficiency
+phi = 0.1  	#probability of failing to hide in safe place
+h = 1.0    	#handling time
+
+#prey and predator speed
+mass = 10 
+uk = 0.2 #influence of bodytemp
+v0 = 1.4  #average swim speed (prey is always 1.0)
+vk = 0.2 #influence of bodytemp
+
+#light effects
+l0 = 1.0
+l1 = 1.0
+
+#mortality rate of prey by predation
+mx = 1.0
+my = 1.0
+
+sharktemp=calc.bodytemp(watertemp,mass) 
+U = u0 + uk*(watertemp-(tmax+tmin)/2)
+V = v0 + vk*(sharktemp-(tmax+tmin)/2)
+L = calc.light_effect(t,l0,l1)
+
+plot.assumption(t, watertemp, sharktemp, V, U, L)
+
+x.seq = seq(0.0,0.4,length=5)
+y.seq = seq(1.0,2.0,length=5)
+
+grid = 51
+x.ax = seq(0.0,0.4, length=grid)
+y.ax = seq(1.0,2.0,length=grid)
+
+name = "mx10my10"
+
+png(paste(name,"_map.png",sep=""),height=1600,width=1600)
+par(mfrow=c(length(x.seq),length(y.seq)),cex=2.0,mex=0.3)
+for(v0 in rev(y.seq)){
+V = v0 + vk*(sharktemp-(tmax+tmin)/2)
+for(phi in x.seq){
+	Ans = tss_probforage_energygain_optimize_linear(V, U, alpha, C, L, my, phi, omega, beta, h, mb,mx)
+	plot.sim_result(Ans,bquote(list(varphi==.(phi),'v'['0']==.(v0))))
+}
+}
+dev.off()
+
+no = matrix(0,grid,grid)
+for(y in 1:length(y.ax)){
+	v0 = y.ax[y]
+	V = v0 + vk*(sharktemp-(tmax+tmin)/2)
+	for(x in 1:length(x.ax)){
+		phi = x.ax[x]
+		Ans = tss_probforage_energygain_optimize_linear(V, U, alpha, C, L, my, phi, omega, beta, h, mb,mx)
+		no[x,y] = allpeak_no.sim_result(Ans,0.0)
+		#	plot.sim_result(Ans,"")
+	}
+}
+
+mode = allpeak_no.mode(no)
+png(paste(name,"_image.png",sep=""),height=1600,width=1600)
+par(mfrow=c(1,1),cex=4.0,bg=rgb(0,0,0,0))
+allpeak_no.image(x.ax,y.ax,mode,xlab=bquote(varphi),ylab=bquote('v'['0']))
+allpeak_no.point(x.ax,y.ax,mode,cex=0.5)
+dev.off()
+
+#=== plot with changing mx and my
 omega = 1.0
 beta = 1.0
 phi = 0.1
-h = 0.1
+h = 1.0
 
 # work out the shark's body temperature
 #    mass is kind of the size of shark (like sharkradius)
@@ -280,14 +119,42 @@ L = calc.light_effect(t,lmin,lmax)
 
 plot.assumption(t, watertemp, sharktemp, V, U, L)
 
-par(mfrow=c(5,5),mex=0.3)
-for(my in seq(0.0,0.6,length=5)){
-for(mx in seq(0.0,0.6,length=5)){
-	Ans = tss_probforage_energygain_optimize_linear(V, U, alpha, C, L, my, phi, omega, beta, h, mb,mx)
-	plot.sim_result(Ans,bquote(list('m'['x']==.(mx),'m'['y']==.(my))))
+x.seq = seq(0.0,1.0,length=5)
+y.seq = seq(0.0,1.0,length=5)
+
+grid = 51
+x.ax = seq(0,1,length=grid)
+y.ax = seq(0,1,length=grid)
+
+name = "case1"
+
+png(paste(name,"_map.png",sep=""),height=1600,width=1600)
+par(mfrow=c(length(x.seq),length(y.seq)),cex=2.0,mex=0.3)
+for(my in rev(y.seq)){
+	for(mx in x.seq){
+		Ans = tss_probforage_energygain_optimize_linear(V, U, alpha, C, L, my, phi, omega, beta, h, mb,mx)
+		plot.sim_result(Ans,bquote(list('m'['x']==.(mx),'m'['y']==.(my))))
+	}
 }
+dev.off()
+
+no = matrix(0,grid,grid)
+for(y in 1:length(y.ax)){
+	for(x in 1:length(x.ax)){
+		mx = x.ax[x]
+		my = y.ax[y]
+		Ans = tss_probforage_energygain_optimize_linear(V, U, alpha, C, L, my, phi, omega, beta, h, mb,mx)
+		no[x,y] = allpeak_no.sim_result(Ans,0.0)
+		#	plot.sim_result(Ans,"")
+	}
 }
 
+mode = allpeak_no.mode(no)
+png(paste(name,"_image.png",sep=""),height=1600,width=1600)
+par(mfrow=c(1,1),cex=4.0,bg=rgb(0,0,0,0))
+allpeak_no.image(x.ax,y.ax,mode,xlab=bquote('m'['x']),ylab=bquote('m'['y']))
+allpeak_no.point(x.ax,y.ax,mode,cex=0.5)
+dev.off()
 
 #=== plot with changing mass (sharkradius) and phi ===
 omega = 0.5
@@ -338,7 +205,7 @@ h = 0.1
 
 mx = 0.4
 my = 0.4
-par(mfrow=c(5,4),mex=0.3)
+par(mfrow=c(6,5),mex=0.3)
 #plot(0,0,type="n",axes=FALSE,xlab="",ylab="")
 for(mass in c(1,4,16,64)){
 	# work out the shark's body temperature
@@ -479,8 +346,8 @@ allpeak_no.point(x.ax,y.ax,mode,cex=0.5)
 #=== plot with changing mass (sharkradius) and phi ===
 omega = 1.0
 beta = 1.0
-phi = 0.1
-h = 0.1
+phi = 0.2
+h = 1.0
 
 # work out the shark's body temperature
 #    mass is kind of the size of shark (like sharkradius)
@@ -490,12 +357,12 @@ sharktemp=calc.bodytemp(watertemp,mass)
 #bodytemp=calc.shark.temp(tnum,watertemp,sharkradius,skinthickness)
 
 # prey immediately track temperature
-utemp = 0.1 #influence of bodytemp
+utemp = 0.2 #influence of bodytemp
 U = uave + utemp*(watertemp-(tmax+tmin)/2)
 
 # sharks track their own temperature
-vave = 1.2 #average swim speed (prey is always 1.0)
-vtemp = 0.1 #influence of bodytemp
+vave = 1.4 #average swim speed (prey is always 1.0)
+vtemp = 0.2 #influence of bodytemp
 V = vave + vtemp*(sharktemp-(tmax+tmin)/2)
 
 # calc light effect, or predation efficiency
@@ -524,12 +391,180 @@ for(y in 1:length(y.ax)){
 }
 
 mode = allpeak_no.mode(no)
-
 allpeak_no.image(x.ax,y.ax,mode,xlab="beta",ylab="omega")
 allpeak_no.point(x.ax,y.ax,mode,cex=0.5)
 
 
 unique(no[mode$main==0])
+
+#=== plot with changing mass (sharkradius) and phi ===
+omega = 1.0
+beta = 0.0
+phi = 0.2
+h = 1.0
+
+# work out the shark's body temperature
+#    mass is kind of the size of shark (like sharkradius)
+#    I used this just for simplifying parameters
+mass = 10
+sharktemp=calc.bodytemp(watertemp,mass) 
+#bodytemp=calc.shark.temp(tnum,watertemp,sharkradius,skinthickness)
+
+# prey immediately track temperature
+uk = 0.2 #influence of bodytemp
+U = u0 + uk*(watertemp-(tmax+tmin)/2)
+
+# sharks track their own temperature
+v0 = 1.4 #average swim speed (prey is always 1.0)
+vk = 0.2 #influence of bodytemp
+V = v0 + vk*(sharktemp-(tmax+tmin)/2)
+
+# calc light effect, or predation efficiency
+#    e.g., in muddy (inclear) water this value will increase?
+l0 = 1
+l1 = 1
+L = calc.light_effect(t,l0,l1)
+
+mx = 0.5
+my = 0.5
+
+#plot.assumption(t,watertemp,sharktemp, V,U,L)
+
+#=== for mass and v0
+grid = 51
+no = matrix(0,grid,grid)
+x.ax = seq(1,20,length=grid)
+y.ax = seq(1.0,2.0,length=grid)
+
+for(y in 1:length(y.ax)){
+	for(x in 1:length(x.ax)){
+		mass  = x.ax[x]
+		v0 = y.ax[y]
+ 
+		sharktemp=calc.bodytemp(watertemp,mass) 
+		V = v0 + vk*(sharktemp-(tmax+tmin)/2)
+		
+		Ans = tss_probforage_energygain_optimize_linear(V, U, alpha, C, L, my, phi, omega, beta, h, mb,mx)
+		no[x,y] = allpeak_no.sim_result(Ans,0.0)
+		#	plot.sim_result(Ans,"")
+	}
+}
+par(mfrow=c(1,1))
+mode = allpeak_no.mode(no)
+allpeak_no.image(x.ax,y.ax,mode,xlab="mass",ylab="v0")
+allpeak_no.point(x.ax,y.ax,mode,cex=0.5)
+
+
+#=== plot with changing mass (sharkradius) and phi ===
+omega = 1.0
+beta = 1.0
+phi = 0.2
+h = 1.0
+
+# work out the shark's body temperature
+#    mass is kind of the size of shark (like sharkradius)
+#    I used this just for simplifying parameters
+mass = 1
+sharktemp=calc.bodytemp(watertemp,mass) 
+#bodytemp=calc.shark.temp(tnum,watertemp,sharkradius,skinthickness)
+
+# prey immediately track temperature
+uk = 0.2 #influence of bodytemp
+U = u0 + uk*(watertemp-(tmax+tmin)/2)
+
+# sharks track their own temperature
+v0 = 1.4 #average swim speed (prey is always 1.0)
+vk = 0.2 #influence of bodytemp
+V = v0 + vk*(sharktemp-(tmax+tmin)/2)
+
+# calc light effect, or predation efficiency
+#    e.g., in muddy (inclear) water this value will increase?
+l0 = 1
+l1 = 1
+L = calc.light_effect(t,l0,l1)
+
+mx = 0.5
+my = 0.5
+
+grid = 51
+no = matrix(0,grid,grid)
+x.ax = seq(0,0.4,length=grid)
+y.ax = seq(1.0,2.0,length=grid)
+
+for(y in 1:length(y.ax)){
+	for(x in 1:length(x.ax)){
+		phi  = x.ax[x]
+		v0 = y.ax[y]
+		
+		sharktemp=calc.bodytemp(watertemp,mass) 
+		V = v0 + vk*(sharktemp-(tmax+tmin)/2)
+		
+		Ans = tss_probforage_energygain_optimize_linear(V, U, alpha, C, L, my, phi, omega, beta, h, mb,mx)
+		no[x,y] = allpeak_no.sim_result(Ans,0.0)
+		#	plot.sim_result(Ans,"")
+	}
+}
+par(mfrow=c(1,1))
+mode = allpeak_no.mode(no)
+allpeak_no.image(x.ax,y.ax,mode,xlab="phi",ylab="v0")
+allpeak_no.point(x.ax,y.ax,mode,cex=0.5)
+
+
+
+#=== plot with changing mass (sharkradius) and phi ===
+omega = 1.0
+beta = 1.0
+phi = 0.0
+h = 1.0
+
+# work out the shark's body temperature
+#    mass is kind of the size of shark (like sharkradius)
+#    I used this just for simplifying parameters
+mass = 10
+sharktemp=calc.bodytemp(watertemp,mass) 
+#bodytemp=calc.shark.temp(tnum,watertemp,sharkradius,skinthickness)
+
+# prey immediately track temperature
+uk = 0.2 #influence of bodytemp
+U = u0 + uk*(watertemp-(tmax+tmin)/2)
+
+# sharks track their own temperature
+v0 = 1.4 #average swim speed (prey is always 1.0)
+vk = 0.2 #influence of bodytemp
+V = v0 + vk*(sharktemp-(tmax+tmin)/2)
+
+# calc light effect, or predation efficiency
+#    e.g., in muddy (inclear) water this value will increase?
+l0 = 1
+l1 = 1
+L = calc.light_effect(t,l0,l1)
+
+mx = 0.5
+my = 0.5
+
+#plot.assumption(t,watertemp,sharktemp, V,U,L)
+
+grid = 101
+active = matrix(0,length(watertemp),grid)
+y.ax = seq(1.0,20.0,length=grid)
+
+for(y in 1:length(y.ax)){
+	mass = y.ax[y]
+	sharktemp=calc.bodytemp(watertemp,mass) 
+	V = v0 + vk*(sharktemp-(tmax+tmin)/2)
+	
+	Ans = tss_probforage_energygain_optimize_linear(V, U, alpha, C, L, my, phi, omega, beta, h, mb,mx)
+	active[,y] = Ans$Predator
+	#	plot.sim_result(Ans,"")
+}
+
+image(t,y.ax,active)
+
+
+par(mfrow=c(1,1))
+mode = allpeak_no.mode(no)
+allpeak_no.image(x.ax,y.ax,mode,xlab="mass",ylab="v0")
+allpeak_no.point(x.ax,y.ax,mode,cex=0.5)
 
 #===base color===
 #black	: no use

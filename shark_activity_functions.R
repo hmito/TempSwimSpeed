@@ -122,17 +122,20 @@ plot.assumption=function(t,watertemp,sharktemp,V,U,L){
 #peak-based pattern categorization
 allpeak_no.sim_result=function(Ans,ThrPrb=0.20){
 	ans = 0
+	thr = 0.5
 	
 	p = Ans$Predator
-	p = (p + c(p[-1],p[1]) + c(p[length(p)],p[-length(p)]))/3
-	
-	if(all(p<=0.25)){
+#	p = (p + c(p[-1],p[1]) + c(p[length(p)],p[-length(p)]))/3
+	p[c(p[-1],p[1])>thr&c(p[length(p)],p[-length(p)]) > thr]= 1
+		
+	if(all(p<=thr)){
 		return(0)
-	}else if(all(p>0.25)){
+	}else if(all(p>thr)){
 		return(44)
 	}
 	
-	peaks = hist.find_peaks(p,0,0.05)
+	p[p>0.05]=1
+	peaks = hist.find_peaks(p,0,thr)
 	#connect 24-1
 	if(nrow(peaks)>1 && peaks$lower[1]==1 && peaks$upper[nrow(peaks)]==24){
 		peaks$lower[1] = peaks$lower[nrow(peaks)]
@@ -145,9 +148,8 @@ allpeak_no.sim_result=function(Ans,ThrPrb=0.20){
 	
 	#--time division--
 	#1:night (20-3)
-	#2:before-noon(4-12)
+	#2:before-noon(4-11)
 	#3:after-noon(12-19)
-	#evening:4:16-21
 	#timediv = c(1,1,1,2,2,2,2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,1,1,1)
 	timediv = c(rep(1,3),rep(2,8),rep(3,8),rep(1,5))
 	ans = 0
