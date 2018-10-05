@@ -67,9 +67,24 @@ calc.mass_for_bodytemp = function(sharkradius,skinthickness){
 }
 
 #light effect
-calc.light_effect = function(t,lmin,lmax){
+calc.light_effect_old = function(t,dark,light){
 	lwave=exp(-1.0*cos(2*pi*(length(t)/2-t)/length(t)))/exp(1.0)
-	return(lmin+(lmax-lmin)*lwave)
+	return(dark+(light-dark)*lwave)
+}
+calc.light_effect = function(t, l_min, l_max, light_influence, twilight_coef=0.3){
+	#Around twilight_coef = 0.3 seems to be reasonable because
+	#	- the definition of astronominal twilight is that the sun is less than -18 degree below the horizon. 
+	#	- On the Equator, 18 degree passes for 1.2 hours, so twilight start from t = 4.8 or end at t=19.2.
+	#	- This time becomes longer when the Culmination altitude is less than 90 degree.
+	#	- At twilight_coef = 0.3,
+	#		- the sea is perfectly dark when t is from 20.5 to 3.5.
+	#		- the sea is slightly bright (3% of noon) at t=4.5, 19.5
+	#		- the light level rach to 20% and 40% of noon at t=5.5, 6.5.
+	
+	lwave=(1-twilight_coef)*cos(2*pi*(t-12)/length(t)) + twilight_coef
+	lwave[lwave<0] = 0
+	alpha = log(l_max/l_min)
+	return(l_max*exp(-alpha*lwave^(1/light_influence)))
 }
 
 #Summarized figure
@@ -106,9 +121,10 @@ plot.assumption=function(t,watertemp,sharktemp,V,U,L){
 	#	text(5,0.25,bquote(lambda['t']))
 	axis(4)
 	
-	plot(t,V,col="red",pch=16,xlim=c(0,tnum),ylim=c(min(V-U),max(c(V,U))),
+	plot(t,V,type="n",xlim=c(0,tnum),ylim=c(min(V-U),max(c(V,U))),
 		  xlab="time (t)",ylab="burst speed",main="swim speed")
 	segments(-100,0,100,0)
+	points(t,V,col="red",pch=16)
 	lines(t,V,col="red",lty=1)
 	#	text(15,2.3,bquote('v'['t']))
 	points(t,U,col="blue",pch=15)
@@ -119,8 +135,8 @@ plot.assumption=function(t,watertemp,sharktemp,V,U,L){
 	#	text(17,0.9,bquote(list('v'['t'],'- u'['t'])))
 }
 
-#peak-based pattern categorization
-allpeak_no.sim_result=function(Ans,ThrPrb=0.20){
+#peak based pattern categorization
+allpeak.get_category = function(Ans, ThrPrb=0.20){
 	ans = 0
 	thr = 0.5
 	
@@ -161,8 +177,8 @@ allpeak_no.sim_result=function(Ans,ThrPrb=0.20){
 	
 	return(ans)
 }
-allpeak_no.mode = function(original_no){
-	no = original_no%%100
+allpeak.get_plotmode = function(category){
+	no = category%%100
 	mode = no
 	mode[no==mode]=0	#reset all
 	mode[no==0] =1 #black	: no use
@@ -179,7 +195,7 @@ allpeak_no.mode = function(original_no){
 	mode[no==23]=12 #yellow	: beforenoon to afternoon (daytime)
 	mode[no==14]=13 #orange : late midnight to early midnight (rest midnight)
 	
-	sub = (original_no-no)/100
+	sub = (category-no)/100
 	submode = sub
 	submode[sub==submode]=0	#reset all
 	submode[sub==22] =1 #green: beforenoon
@@ -188,7 +204,7 @@ allpeak_no.mode = function(original_no){
 	
 	return(list(main=mode,sub=submode))
 }
-allpeak_no.color=function(){
+detail.allpeak.no.color=function(){
 	return(
 		c("grey",
 		  "black",
@@ -207,8 +223,8 @@ allpeak_no.color=function(){
 		)
 	)
 }
-allpeak_no.point=function(x.seq,y.seq,mode,...){
-	submode = mode$sub
+allpeak.point=function(x.seq,y.seq,plotmode,...){
+	submode = plotmode$sub
 	x = matrix(rep(x.seq,times=length(y.seq)),length(x.seq),length(y.seq))
 	y = matrix(rep(y.seq,each =length(x.seq)),length(x.seq),length(y.seq))
 	
@@ -224,9 +240,274 @@ allpeak_no.point=function(x.seq,y.seq,mode,...){
 	y.pos = as.vector(y[submode==3])
 	points(x.pos,y.pos,col="black",pch=17,...)
 }
-allpeak_no.image=function(x.seq,y.seq,mode,...){
-	main = mode$main
-	col = allpeak_no.color()
+allpeak.image=function(x.seq,y.seq,plotmode,...){
+	main = plotmode$main
+	col = detail.allpeak.no.color()
 	image(x.seq,y.seq,main,zlim=c(0,length(col)-1),col=col,...)
 }
+
+#major-active-time based categorization
+majortime.get_category2 = function(Ans, MajorProb = 0.25){
+	thr = 0.5
+	
+	p = Ans$Predator
+	#	p = (p + c(p[-1],p[1]) + c(p[length(p)],p[-length(p)]))/3
+	p[c(p[-1],p[1])>thr&c(p[length(p)],p[-length(p)]) > thr]= 1
+	
+	if(all(p<=thr)){
+		return(0)
+	}
+	
+	p[p>0.05]=1
+	peaks = hist.find_peaks(p,0,thr)
+	#connect 24-1
+	if(nrow(peaks)>1 && peaks$lower[1]==1 && peaks$upper[nrow(peaks)]==24){
+		peaks$lower[1] = peaks$lower[nrow(peaks)]
+		peaks$freq[1] = peaks$freq[1] + peaks$freq[nrow(peaks)]
+		peaks = peaks[-nrow(peaks),]
+	}
+	
+	peaks = peaks[peaks$freq/sum(peaks$freq)>0.00,]
+	peaks = peaks[order(peaks$freq),]
+	
+	#--time division--
+	timediv = c(rep(1,length=6),rep(2,length=6),rep(3,length=6),rep(4,length=6))
+	#timediv = c(rep(1,3),rep(2,8),rep(3,8),rep(1,5))
+	ans = 0
+	for(i in 1:nrow(peaks)){
+		subp = numeric(length(p))
+		if(peaks$lower[i] <= peaks$upper[i]){
+			subp[peaks$lower[i]:peaks$upper[i]] = p[peaks$lower[i]:peaks$upper[i]]
+		}else{
+			subp[ 1:peaks$upper[i]] = p[ 1:peaks$upper[i]]
+			subp[peaks$lower[i]:24] = p[peaks$lower[i]:24]
+		}
+		for(j in unique(timediv)){
+			if(sum(subp[timediv==j])/sum(subp) >= MajorProb){
+				ans = ans + 2^(j-1)*100^(i-1)
+			}
+		}
+	}
+	return(ans)
+}
+majortime.get_plotmode2 = function(category){
+	no = category
+	no[category==category] = 0
+	no[category== 0] = 1	#nothing
+	no[category==15] = 2	#all
+	no[category== 1] = 3	#night-am
+	no[category== 8] = 4	#night-pm
+	no[category== 9] = 5	#night
+	no[category== 2] = 6	#day-am
+	no[category== 4] = 7	#day-pm
+	no[category== 6] = 8	#day
+	no[category== 3] = 9	#pm
+	no[category==12] =10	#am
+	no[category==11] =11	#night + day-am
+	no[category==14] =12	#day + night-pm
+	no[category>=100]=13	#two peaks
+	
+	return(no)
+}
+
+
+#major-active-time based categorization
+majortime.get_category3 = function(Ans, MajorProb = 0.25){
+	thr = 0.5
+	
+	p = Ans$Predator
+	p[c(p[-1],p[1])>thr&c(p[length(p)],p[-length(p)]) > thr]= 1
+	
+	if(sum(p>=thr)==0){
+		return(0)
+	}else if(sum(p>=thr)>=18){
+		return(1)
+	}
+	
+	p[p>0.05]=1
+	peaks = hist.find_peaks(p,0,thr)
+	#connect 24-1
+	if(nrow(peaks)>1 && peaks$lower[1]==1 && peaks$upper[nrow(peaks)]==24){
+		peaks$lower[1] = peaks$lower[nrow(peaks)]
+		peaks$freq[1] = peaks$freq[1] + peaks$freq[nrow(peaks)]
+		peaks = peaks[-nrow(peaks),]
+	}
+	
+	peaks = peaks[peaks$freq/sum(peaks$freq)>0.00,]
+	peaks = peaks[order(peaks$freq,decreasing=TRUE),]
+	
+	#--time division--
+	timediv = c(rep(1,length=3),rep(2,length=6),rep(3,length=6),rep(4,length=6),rep(1,length=3))
+	#timediv = c(rep(1,3),rep(2,8),rep(3,8),rep(1,5))
+	ans = 0
+	for(i in 1:nrow(peaks)){
+		if(peaks$lower[i] <= peaks$upper[i]){
+			mean = mean(peaks$lower[i]:peaks$upper[i])
+		}else{
+			mean = mean(c(peaks$lower[i]:24, 1:peaks$upper[i]+24))%%24
+		}
+		
+		ans = ans + (
+			2*(1*(3<=mean & mean<9)+
+				2*(9<=mean & mean<15)+
+				3*(15<=mean& mean<21)+
+				4*(21<=mean | mean<3)
+			)+1*(peaks$freq[i]>=12)
+		)*10^(i-1)
+	}
+	return(ans)
+}
+majortime.get_plotmode3 = function(category){
+	no = category
+	no[category==category] = 0
+	no[category== 0] = 1	#nothing
+	no[category== 1] = 2	#all
+	no[category== 2] = 3	#morning short
+	no[category== 3] = 4	#morning long
+	no[category== 4] = 5	#day short
+	no[category== 5] = 6	#day long
+	no[category== 6] = 7	#evening short
+	no[category== 7] = 8	#evening long
+	no[category== 8] = 9	#night short
+	no[category== 9] =10	#night long
+	no[category >10] =11	#two peaks
+	
+	return(no)
+}
+detail.majortime.no.color3 = function(){
+	return(c("yellow","black","white","green", "forestgreen","pink","red","yellow","gold","skyblue","blue","grey"))
+}
+
+#major-active-time based categorization
+majortime.get_category = function(Ans, MajorProb = 0.20){
+	ans = 0
+	#p = rep(c(1,0,1),times=c(5,10,9))
+	
+	if(sum(Ans$Predator)!=0){
+		#major active time 
+		{
+			p = Ans$Predator
+			group = rep(1:4,times=c(6,6,6,6))
+#			group = rep(c(1:4,1),times=c(3,6,6,6,3))
+			
+			for(igroup in unique(group)){
+				if(sum(p[group==igroup])/sum(p) > MajorProb){
+					ans = ans + 2^(igroup-1)
+				}
+			}
+		}
+		
+		#peak number
+		{
+			thr = 0.5
+		#	p[c(p[-1],p[1])>thr&c(p[length(p)],p[-length(p)]) > thr]= 1
+		#	p[c(p[-1],p[1])<thr&c(p[length(p)],p[-length(p)]) < thr]= 0
+			
+			peaks = hist.find_peaks(p,0,thr)
+			
+			#connect 24-1
+			if(nrow(peaks)>1 && peaks$lower[1]==1 && peaks$upper[nrow(peaks)]==24){
+				peaks$lower[1] = peaks$lower[nrow(peaks)]
+				peaks$freq[1] = peaks$freq[1] + peaks$freq[nrow(peaks)]
+				peaks = peaks[-nrow(peaks),]
+			}
+			ans = ans + 16*(nrow(peaks)-1)
+		}
+	}
+	
+	return(ans)
+}
+majortime.get_plotmode = function(category){
+	no = category
+	no[category==category] = 0
+	no[category== 0]  = 1	#nothing
+	no[category== 15] = 2	#all
+	no[category== 6]  = 3	#day
+	no[category== 8]  = 4	#early-night
+	no[category== 12] = 5	#pm
+	no[category== 11] = 6	#except pm-day
+	no[category== 14] = 7	#except am-night
+	no[category== 9]  = 8	#night
+	no[category== 13] = 9	#except am-day
+	no[category== 7] = 10	#except pm-night
+	no[category== 1] = 11	#am-night
+	no[category== 4] = 12	#pm-day
+	no[category>=16 & category<32]  = 13	#two peaks
+	no[category>=32]  = 14					#three peaks
+	return(no)
+}
+majortime.image=function(x.seq,y.seq,plotmode,legend=FALSE,...){
+	#black	: nothing
+	#white	: all time use
+	#red		: day time (6-18)
+	#purple	: early-night (18-24)
+	#yellow	: pm (12-24)
+	#skyblue	: except pm-day (18-12)
+	#orange	: except am-night (6-24)
+	#blue		: night time (18-6)
+	#pale purple: except am-day (12-6)
+	#brown	: except pm-night (0-18)
+	#darkblue: am-night
+	#darkred	: pm-day
+	col=c("grey","black","white","red","purple","yellow","skyblue","orange","blue","mediumpurple1","saddlebrown","blue4","red3","forestgreen","green")
+	image(x.seq,y.seq,plotmode,zlim=c(0,length(col)-1),col=col,...)
+	if(legend)legend("topright", pch=19,legend = c("error","no","all","day","erl-night","pm","ex pm-day","ex am-night","night", "ex am-day","ex pm-night", "am-night","pm-day","two peaks","three peaks"), col = col)
+}
+majortime.image_black=function(x.seq,y.seq,plotmode,...){
+	col=c("white","black","white","white","white","white","white","white","white","darkgrey","grey")
+	image(x.seq,y.seq,plotmode,zlim=c(0,length(col)-1),col=col,...)
+	for(no in 3:8){
+		hmRLib::image_polygon(x.seq,y.seq,plotmode==no,...)
+	}
+}
+
+majortime.get_category4 = function(Ans, MajorProb = 0.20){
+	ans = 0
+	#p = rep(c(1,0,1),times=c(5,10,9))
+	
+	if(sum(Ans$Predator)!=0){
+		thr = 0.5
+		#	p[c(p[-1],p[1])>thr&c(p[length(p)],p[-length(p)]) > thr]= 1
+		#	p[c(p[-1],p[1])<thr&c(p[length(p)],p[-length(p)]) < thr]= 0
+		
+		peaks = hist.find_peaks(Ans$Predator,0,thr)
+		
+		#connect 24-1
+		if(nrow(peaks)>1 && peaks$lower[1]==1 && peaks$upper[nrow(peaks)]==24){
+			peaks$lower[1] = peaks$lower[nrow(peaks)]
+			peaks$freq[1] = peaks$freq[1] + peaks$freq[nrow(peaks)]
+			peaks = peaks[-nrow(peaks),]
+		}
+		peaks = peaks[order(peaks$freq,decreasing = TRUE),]
+		
+		for(ipeak in 1:nrow(peaks)){
+			time = logical(24)
+			if(peaks$lower[ipeak] <= peaks$upper[ipeak]){
+				time[peaks$lower[ipeak]:peaks$upper[ipeak]]=TRUE
+			}else{
+				time[peaks$lower[ipeak]:24]=TRUE
+				time[ 1:peaks$upper[ipeak]]=TRUE
+			}
+			p = Ans$Predator
+			p[!time] = 0
+
+			group = rep(1:4,times=c(6,6,6,6))
+			#group = rep(c(1:4,1),times=c(3,6,6,6,3))
+			
+			for(igroup in unique(group)){
+				if(sum(p[group==igroup])/sum(p) > MajorProb){
+					ans = ans + 2^(igroup-1)*100^(ipeak-1)
+				}
+			}
+		}
+	}
+	
+	return(ans)
+}
+
+
+detail.majortime.no.color3 = function(){
+	return(c("yellow","black","white","green", "forestgreen","pink","red","yellow","gold","skyblue","blue","grey"))
+}
+
 
