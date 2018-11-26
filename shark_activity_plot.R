@@ -97,17 +97,25 @@ for(y in 1:length(y.ax)){
 		#run simulation
 		Ans = tss_probforage_energygain_optimize_linear(V, U, alpha, C, L, my, phi, omega, beta, h, mb,mx)
 		#calculate category
-		no[x,y] = majortime.get_category(Ans,0.20)
+		no[x,y] = majortime5.get_category(Ans,0.20)
 	}
 }
 #reset to default values
 phi = 0.1
 v0 = 1.4
 #plot category image
+plotmode = majortime5.get_plotmode(no)
 png(paste(name,"_image.png",sep=""),height=1600,width=1600)
 par(mfrow=c(1,1),cex=4.0,bg=rgb(0,0,0,0))
-majortime.image(x.ax,y.ax,majortime.get_plotmode(no),legend = TRUE, xlab="phi",ylab="v0")
+image.plotmode(x.ax,y.ax,plotmode, xlab="phi",ylab="v0")
 dev.off()
+
+#list of categorization error (grey colors) 
+plotmode$err_category
+
+#list of categorization error (grey colors) by ignoring the number of peaks
+sort(unique((plotmode$err_category)%%100))
+
 
 
 #=== draw mass-v0 figures === 
@@ -161,7 +169,7 @@ for(y in 1:length(y.ax)){
 		#run simulation
 		Ans = tss_probforage_energygain_optimize_linear(V, U, alpha, C, L, my, phi, omega, beta, h, mb,mx)
 		#calculate category
-		no[x,y] = majortime.get_category(Ans,0.20)
+		no[x,y] = majortime5.get_category(Ans,0.20)
 	}
 }
 #reset to default values
@@ -170,5 +178,5 @@ v0 = 1.4
 #plot category image
 png(paste(name,"_image.png",sep=""),height=1600,width=1600)
 par(mfrow=c(1,1),cex=4.0,bg=rgb(0,0,0,0))
-majortime.image(x.ax,y.ax,majortime.get_plotmode(no),legend = TRUE,xlab="mass",ylab="v0")
+image.plotmode(x.ax,y.ax,majortime5.get_plotmode(no),xlab="mass",ylab="v0")
 dev.off()

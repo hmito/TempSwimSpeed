@@ -173,7 +173,7 @@ plot.assumption=function(t,watertemp,sharktemp,V,U,L){
 	#	text(17,0.9,bquote(list('v'['t'],'- u'['t'])))
 }
 
-#major-active-time based categorization
+#major-active-time based categorization with 4 time zone
 #parameters
 #	Ans: return value of tss_probforage_energygain_optimize function
 #	MajorProb: threshold for the definition of major-acitve time
@@ -227,50 +227,155 @@ majortime.get_category = function(Ans, MajorProb = 0.20){
 	return(ans)
 }
 
-#transform category to plotmode, which define the colour of plot
+#transform majortime category to plotmode, which define the colour of plot
 #parameters
 #	catergory: return value of majortime.get_category
 #return
-#	plotmode (used in majortime.image)
+#	plotmode (used in image.plotmode)
 majortime.get_plotmode = function(category){
-	no = category
-	no[category==category] = 0
-	no[category== 0]  = 1	#nothing
-	no[category== 15] = 2	#all
-	no[category== 6]  = 3	#day
-	no[category== 8]  = 4	#early-night
-	no[category== 12] = 5	#pm
-	no[category== 11] = 6	#except pm-day
-	no[category== 14] = 7	#except am-night
-	no[category== 9]  = 8	#night
-	no[category== 13] = 9	#except am-day
-	no[category== 7] = 10	#except pm-night
-	no[category== 1] = 11	#am-night
-	no[category== 4] = 12	#pm-day
-	no[category>=16 & category<32]  = 13	#two peaks
-	no[category>=32]  = 14					#three peaks
-	return(no)
+	#colour for categories which is not allocated by any colour 
+	errclr = "grey"
+	
+	clr = category
+	clr[category==category] = errclr #error
+	clr[category== 0]  = "black"	#nothing
+	clr[category== 15] = "white"	#all
+	clr[category== 6]  = "red"	#day
+	clr[category== 8]  = "purple"	#early-night
+	clr[category== 12] = "yellow"	#pm
+	clr[category== 11] = "skyblue"	#except pm-day
+	clr[category== 14] = "orange"	#except am-night
+	clr[category== 9]  = "blue"	#night
+	clr[category== 13] = "mediumpurple1"	#except am-day
+	clr[category== 7] = "saddlebrown"	#except pm-night
+	clr[category== 1] = "blue4"	#am-night
+	clr[category== 4] = "red3"	#pm-day
+	clr[category>=16 & category<32]  = "forestgreen"	#two peaks
+	clr[category>=32]  = "green"	#three peaks
+	
+	dotclr = category
+	dotclr[category==category] = "none"
+	
+	#list of error category (not allocated by any colour )
+	err = sort(unique(as.vector(category[clr == errclr])))
+	
+	return(list(clr=clr,dotclr=dotclr,err_category=err))
 }
 
-#plot category with different colours
+#major-active-time based categorization with 5 time zone
+#parameters
+#	Ans: return value of tss_probforage_energygain_optimize function
+#	MajorProb: threshold for the definition of major-acitve time
+#		major-active time := [foraging frequency during the focal duration]/[total foraging frequency] >= MajorProb
+majortime5.get_category = function(Ans, MajorProb = 0.20){
+	ans = 0
+	
+	if(sum(Ans$Predator)!=0){
+		#active time
+		#	t=0-4: group 1
+		#	t=5-8: group 2
+		#	t=9-15: group 3
+		#	t=16-19: group 4
+		#	t=20-23: group 5
+		# 1, 2, 4, 8, 16 means the active time is group 1,2,3,4, 5
+		# multiple group use is just shown by the summation
+		#	gruop 1+3: 1+4
+		#	group 2+3+4: 2+4+8
+		#	no use: 0
+		#	full use: 31
+		{
+			p = Ans$Predator
+			group = c(rep(1,5),rep(2,4),rep(3,7),rep(4,4),rep(5,4))
+				
+			for(igroup in unique(group)){
+				if(sum(p[group==igroup])/sum(p) > MajorProb){
+					ans = ans + 2^(igroup-1)
+				}
+			}
+		}
+		
+		#peak number
+		#	100 * (peaknum - 1)
+		#	0-31 : one peak
+		#	100-131: two peaks
+		#	200-231: three peaks
+		#	...
+		{
+			thr = 0.5			
+			peaks = hist.find_peaks(p,0,thr)
+			
+			#connect 24-1
+			if(nrow(peaks)>1 && peaks$lower[1]==1 && peaks$upper[nrow(peaks)]==24){
+				peaks$lower[1] = peaks$lower[nrow(peaks)]
+				peaks$freq[1] = peaks$freq[1] + peaks$freq[nrow(peaks)]
+				peaks = peaks[-nrow(peaks),]
+			}
+			ans = ans + 100*(nrow(peaks)-1)
+		}
+	}
+	
+	return(ans)
+}
+
+#transform majortime5 category to plotmode, which define the colour of plot
+#parameters
+#	catergory: return value of majortime.get_category
+#return
+#	plotmode (used in image.plotmode)
+majortime5.get_plotmode = function(category){
+	#colour for categories which is not allocated by any colour 
+	errclr = "grey"
+	
+	#remove information of peak numbers
+	majortime=(category%%100)
+
+	#definition of image colours
+	clr = category
+	clr[category==category] = errclr #error
+	#add allocation of colors in the following lines
+	clr[majortime== 0]  = "black"	#nothing
+	clr[majortime== 31] = "white"	#all
+	clr[majortime== 1]  = "blue"	#nocturnal  (0-4)
+	clr[majortime== 17]  = "blue"	#nocturnal (20-4)
+	clr[majortime== 16]  = "purple"	#early night (20-23)
+	#etc...
+
+	#definition of dot colours
+	dotclr = category
+	dotclr[category==category] = "none"
+	#add allocation of dot colours in the following lines
+	dotclr[100<=category & category<200] = "black"
+	dotclr[200<=category & category<300] = "white"
+	
+	#list of error category (not allocated by any colour )
+	err = sort(unique(as.vector(category[clr == errclr])))
+	
+	return(list(clr=clr,dotclr=dotclr, err_category=err))
+}
+
+#plot category with different colours following the definition in plotmode
 #	x.seq: sequence of xaxis
 #	y.seq: sequence of yaxis
-#	plotmode: matrix of plotmode (return value of majortime.get_plotmode)
-#	legend: if TRUE legend is drawn on the figure
-majortime.image=function(x.seq,y.seq,plotmode,legend=FALSE,...){
-	#black	: nothing
-	#white	: all time use
-	#red		: day time (6-18)
-	#purple	: early-night (18-24)
-	#yellow	: pm (12-24)
-	#skyblue	: except pm-day (18-12)
-	#orange	: except am-night (6-24)
-	#blue		: night time (18-6)
-	#pale purple: except am-day (12-6)
-	#brown	: except pm-night (0-18)
-	#darkblue: am-night
-	#darkred	: pm-day
-	col=c("grey","black","white","red","purple","yellow","skyblue","orange","blue","mediumpurple1","saddlebrown","blue4","red3","forestgreen","green")
-	image(x.seq,y.seq,plotmode,zlim=c(0,length(col)-1),col=col,...)
-	if(legend)legend("topright", pch=19,legend = c("error","no","all","day","erl-night","pm","ex pm-day","ex am-night","night", "ex am-day","ex pm-night", "am-night","pm-day","two peaks","three peaks"), col = col)
+#	plotmode: matrix of plotmode (return value of majortime.get_plotmode or majortime5.get_plotmode)
+#	dotcex: change the scale of dots 
+image.plotmode=function(x.seq,y.seq,plotmode,dotcex = 0.33,...){
+	fz = factor(plotmode$clr)
+	z = matrix(as.integer(fz),length(x.seq),length(y.seq))
+	clr = levels(fz)
+	clr[clr=="none"] = rgb(0,0,0,0)
+	image(x.seq,y.seq,z,col=levels(fz),...)
+	
+	fd = factor(plotmode$dotclr)
+	for(clr in levels(fd)){
+		if(clr == "none")next
+		
+		x.mx = matrix(rep(x.seq,times = length(y.seq)), length(x.seq), length(y.seq))
+		y.mx = matrix(rep(y.seq,each  = length(x.seq)), length(x.seq), length(y.seq))
+		
+		z = (fd==clr)
+		xpos = x.mx[z]
+		ypos = y.mx[z]
+		
+		points(xpos,ypos,col = clr, pch=16, cex=dotcex)
+	}
 }
