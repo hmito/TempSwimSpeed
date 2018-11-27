@@ -232,8 +232,11 @@ majortime.get_category = function(Ans, MajorProb = 0.20){
 #	catergory: return value of majortime.get_category
 #return
 #	plotmode (used in image.plotmode)
+#		$clr: colour for image plot. "none" will be ignored.
+#		$dotclr: colours for points. "none" will be ignored.
+#		$err_category: category which is not assigned by any colour for image. 
 majortime.get_plotmode = function(category){
-	#colour for categories which is not allocated by any colour 
+	#colour for categories which is not assigned by any colour 
 	errclr = "grey"
 	
 	clr = category
@@ -256,7 +259,7 @@ majortime.get_plotmode = function(category){
 	dotclr = category
 	dotclr[category==category] = "none"
 	
-	#list of error category (not allocated by any colour )
+	#list of error category (not assigned by any colour )
 	err = sort(unique(as.vector(category[clr == errclr])))
 	
 	return(list(clr=clr,dotclr=dotclr,err_category=err))
@@ -322,8 +325,11 @@ majortime5.get_category = function(Ans, MajorProb = 0.20){
 #	catergory: return value of majortime.get_category
 #return
 #	plotmode (used in image.plotmode)
+#		$clr: colour for image plot. "none" will be ignored.
+#		$dotclr: colours for points. "none" will be ignored.
+#		$err_category: category which is not assigned by any colour for image. 
 majortime5.get_plotmode = function(category){
-	#colour for categories which is not allocated by any colour 
+	#colour for categories which is not assigned by any colour 
 	errclr = "grey"
 	
 	#remove information of peak numbers
@@ -332,7 +338,7 @@ majortime5.get_plotmode = function(category){
 	#definition of image colours
 	clr = category
 	clr[category==category] = errclr #error
-	#add allocation of colors in the following lines
+	#add assignment of colours in the following lines
 	clr[majortime== 0]  = "black"	#nothing
 	clr[majortime== 31] = "white"	#all
 	clr[majortime== 1]  = "blue"	#nocturnal  (0-4)
@@ -343,11 +349,11 @@ majortime5.get_plotmode = function(category){
 	#definition of dot colours
 	dotclr = category
 	dotclr[category==category] = "none"
-	#add allocation of dot colours in the following lines
+	#add assignment of dot colours in the following lines
 	dotclr[100<=category & category<200] = "black"
 	dotclr[200<=category & category<300] = "white"
 	
-	#list of error category (not allocated by any colour )
+	#list of error category (not assigned by any colour )
 	err = sort(unique(as.vector(category[clr == errclr])))
 	
 	return(list(clr=clr,dotclr=dotclr, err_category=err))
