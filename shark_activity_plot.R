@@ -97,14 +97,14 @@ for(y in 1:length(y.ax)){
 		#run simulation
 		Ans = tss_probforage_energygain_optimize_linear(V, U, alpha, C, L, my, phi, omega, beta, h, mb,mx)
 		#calculate category
-		no[x,y] = majortime5.get_category(Ans,0.20)
+		no[x,y] = activetime6.get_category(Ans)
 	}
 }
 #reset to default values
 phi = 0.1
 v0 = 1.4
 #plot category image
-plotmode = majortime5.get_plotmode(no)
+plotmode = activetime6.get_plotmode(no)
 png(paste(name,"_image.png",sep=""),height=1600,width=1600)
 par(mfrow=c(1,1),cex=4.0,bg=rgb(0,0,0,0))
 image.plotmode(x.ax,y.ax,plotmode, xlab="phi",ylab="v0")
@@ -130,7 +130,7 @@ y.seq = seq(1.0,2.0,length=7)
 
 grid = 101
 x.ax = seq(1,30.0, length=grid)
-y.ax = seq(1.0,3.0,length=grid)
+y.ax = seq(1.0,2.0,length=grid)
 
 name = "mass_v0_default"
 
@@ -169,14 +169,15 @@ for(y in 1:length(y.ax)){
 		#run simulation
 		Ans = tss_probforage_energygain_optimize_linear(V, U, alpha, C, L, my, phi, omega, beta, h, mb,mx)
 		#calculate category
-		no[x,y] = majortime5.get_category(Ans,0.20)
+		no[x,y] = activetime6.get_category(Ans)
 	}
 }
+
 #reset to default values
 mass = 10
 v0 = 1.4
 #plot category image
 png(paste(name,"_image.png",sep=""),height=1600,width=1600)
 par(mfrow=c(1,1),cex=4.0,bg=rgb(0,0,0,0))
-image.plotmode(x.ax,y.ax,majortime5.get_plotmode(no),xlab="mass",ylab="v0")
+image.plotmode(x.ax,y.ax,activetime6.get_plotmode(no),xlab="mass",ylab="v0")
 dev.off()

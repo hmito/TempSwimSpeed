@@ -359,6 +359,111 @@ majortime5.get_plotmode = function(category){
 	return(list(clr=clr,dotclr=dotclr, err_category=err))
 }
 
+#major-active-time based categorization with 5 time zone
+#parameters
+#	Ans: return value of tss_probforage_energygain_optimize function
+#	MajorProb: threshold for the definition of major-acitve time
+#		major-active time := [foraging frequency during the focal duration]/[total foraging frequency] >= MajorProb
+activetime6.get_category = function(Ans){
+	ans = 0
+	
+	if(sum(Ans$Predator)!=0){
+		{
+			p = Ans$Predator
+			
+			group = c(rep(1,4),rep(2,4),rep(3,4),rep(4,4),rep(5,4),rep(6,4))
+			
+			for(igroup in unique(group)){
+				if(sum(p[group==igroup])>0){
+					ans = ans + 10^(6-igroup)
+#					ans = ans + 2^(igroup-1)
+				}
+			}
+		}
+	}
+	
+	return(ans)
+}
+
+#transform majortime5 category to plotmode, which define the colour of plot
+#parameters
+#	catergory: return value of majortime.get_category
+#return
+#	plotmode (used in image.plotmode)
+#		$clr: colour for image plot. "none" will be ignored.
+#		$dotclr: colours for points. "none" will be ignored.
+#		$err_category: category which is not assigned by any colour for image. 
+activetime6.get_plotmode = function(category){
+	#colour for categories which is not assigned by any colour 
+	errclr = "grey"
+	
+	#remove information of peak numbers
+	majortime=(category)
+	
+	#definition of image colours
+	clr = category
+	clr[category==category] = errclr #error
+	#add assignment of colours in the following lines
+	clr[majortime== 000000]  = "black"	#nothing
+	clr[majortime== 111111]  = "white"	#asynchronous
+	clr[majortime== 111110]  = "white"	#asynchronous
+	clr[majortime== 111101]  = "white"	#asynchronous
+	clr[majortime== 111011]  = "white"	#asynchronous
+	clr[majortime== 110111]  = "white"	#asynchronous
+	clr[majortime== 101111]  = "white"	#asynchronous
+	clr[majortime== 011111]  = "white"	#asynchronous
+	
+	clr[majortime== 000011]  = "blue"	#early evening
+	clr[majortime== 000001]  = "blue"	#early evening
+
+	clr[majortime== 100000]  = "darkviolet"#late nocturnal
+	clr[majortime== 110000]  = "darkviolet"#late nocturnal
+
+	clr[majortime== 110011]  = "navyblue"	#long noctornal
+	clr[majortime== 110001]  = "navyblue"	#long noctornal
+	clr[majortime== 100011]  = "navyblue"	#long noctornal
+	clr[majortime== 100001]  = "navyblue"	#long noctornal
+	
+	clr[majortime== 000010]  = "cyan"	#sunset
+
+	clr[majortime== 001110]  = "red"	#diurnal
+	clr[majortime== 011110]  = "red"	#diurnal
+	clr[majortime== 001100]  = "red"	#diurnal
+
+	clr[majortime== 000110]  = "orange"	#afternoon
+	clr[majortime== 000100]  = "orange"	#afternoon
+
+	clr[majortime== 001111]  = "yellow"	#afternoon
+	clr[majortime== 000111]  = "yellow"	#afternoon
+	
+	clr[majortime== 011011]  = "forestgreen"	#blacktips
+	clr[majortime== 010011]  = "forestgreen"	#blacktips
+	clr[majortime== 010111]  = "forestgreen"	#blacktips
+	
+	clr[majortime== 010010]  = "green"	#crepuscular
+	clr[majortime== 011010]  = "green"	#crepuscular
+	clr[majortime== 110010]  = "green"	#crepuscular
+	clr[majortime== 010110]  = "green"	#crepuscular
+	clr[majortime== 111010]  = "green"	#crepuscular
+	clr[majortime== 110110]  = "green"	#crepuscular
+	
+	clr[majortime== 001010]  = "yellowgreen"	#after sunrise crepuscular
+	clr[majortime== 001011]  = "yellowgreen"	#after sunrise crepuscular
+	clr[majortime== 101011]  = "yellowgreen"	#after sunrise crepuscular
+
+	clr[majortime== 011001]  = "yellowgreen"	#after sunset crepuscular
+	clr[majortime== 010001]  = "yellowgreen"	#after sunset crepuscular
+	
+	#definition of dot colours
+	dotclr = category
+	dotclr[category==category] = "none"
+
+	#list of error category (not assigned by any colour )
+	err = sort(unique(as.vector(category[clr == errclr])))
+	
+	return(list(clr=clr,dotclr=dotclr, err_category=err))
+}
+
 #plot category with different colours following the definition in plotmode
 #	x.seq: sequence of xaxis
 #	y.seq: sequence of yaxis
