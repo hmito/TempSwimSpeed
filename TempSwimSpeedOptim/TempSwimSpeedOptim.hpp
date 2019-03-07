@@ -304,8 +304,47 @@ namespace tempss{
 			, h(h_){
 		}
 		double operator()(double pf, double v, double u, double l) const{
+			//when beta = 0, return value is non-zero constant when v < u.
+			//when beta > 0, return value is zero when v<u.
 			double gamma =  a*l*pf*(b > 0 ? std::pow(std::max(v - u,0.0), b):1.0);
 			return gamma / (1 + gamma*h);
+		}
+	};
+
+	//Perdation Assumption C1_fix: alpha*(v-u)^beta / {1 + a*(v-u)^b*h} 
+	struct probforage_fix_predation{
+	private:
+		double a;	//inverse of searching time
+		double b;	//non-linear influence of speed difference
+		double h;	//average handling time for predation a prey
+	public:
+		probforage_fix_predation(double a_, double b_, double h_)
+			: a(a_)
+			, b(b_)
+			, h(h_){
+		}
+		double operator()(double pf, double v, double u, double l) const{
+			//return value is always zero when v<u.
+			double gamma =  0.0;
+			if(v>u) gamma = a*l*pf*std::pow(v - u, b);
+			return gamma / (1 + gamma*h);
+		}
+	};
+
+	//Perdation Assumption C4: maxr / [1+exp(-beta*(v-u-dv50))]
+	struct sigmoid_predation{
+	private:
+		double maxr;	//non-linear influence of speed difference
+		double beta;	//average handling time for predation a prey
+		double dvh; 	//inverse of searching time
+	public:
+		sigmoid_predation(double maxr_, double beta_, double dvh_)
+			: maxr(maxr_)
+			, beta(beta_)
+			, dvh(dvh_){
+		}
+		double operator()(double pf, double v, double u, double l) const{
+			return l * pf * maxr / (1+ std::exp(-beta*(v-u-dvh)));
 		}
 	};
 

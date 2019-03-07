@@ -68,8 +68,14 @@ calc.bodytemp = function(watertemp, mass, error = 1e-10){
 #calculate mass from sharkradius & skinthickness
 #	mathematically same with calc.shark.temp function if we use
 #  	calc.bodytemp(watertemp, calc.mass_for_bodytemp(sharkradius,skinthickness))
-calc.mass_for_bodytemp = function(sharkradius,skinthickness){
+calc.mass_for_bodytemp_old = function(sharkradius,skinthickness){
 	1/(2*0.6*0.031593/60/(sharkradius*log(sharkradius/(sharkradius-skinthickness))))
+}
+calc.mass_for_bodytemp = function(sharkradius,skinthickness){
+	log(sharkradius/(sharkradius-skinthickness))*(sharkradius-skinthickness)^2*4.18*10^6/(7200*0.6)
+}
+calc.coef_of_predation_cost = function(sharkradius,skinthickness, bodylength){
+	2*3.14*bodylength*0.60/log(sharkradius/(sharkradius-skinthickness))*3600
 }
 
 #calculate light effect with old definition
@@ -91,7 +97,7 @@ calc.light_effect_old = function(t,dark,light){
 #	twilight_coef: influence of twilight. 0.3 seems good (see comments inside of the function)
 #return
 #	sequence of predatation rate at each time
-calc.light_effect = function(t, l_min, l_max, light_influence, twilight_coef=0.3){
+calc.light_effect = function(t, l_min, light_influence, twilight_coef){
 	#Around twilight_coef = 0.3 seems to be reasonable because
 	#	- the definition of astronominal twilight is that the sun is less than -18 degree below the horizon. 
 	#	- When the Culmination altitute = 90 degree, 18 degree passes for 1.2 hours, so twilight start from t = 4.8 and finish at t=19.2.
@@ -103,8 +109,8 @@ calc.light_effect = function(t, l_min, l_max, light_influence, twilight_coef=0.3
 	
 	lwave=(1-twilight_coef)*cos(2*pi*(t-12)/length(t)) + twilight_coef
 	lwave[lwave<0] = 0
-	alpha = log(l_max/l_min)
-	return(l_max*exp(-alpha*lwave^(1/light_influence)))
+	alpha = log(1.0/l_min)
+	return(exp(-alpha*lwave^(1/light_influence)))
 }
 
 #plot figure of the simulation result
@@ -115,7 +121,7 @@ calc.light_effect = function(t, l_min, l_max, light_influence, twilight_coef=0.3
 #	title: title of the figure
 #return
 #	none
-plot.sim_result = function(Ans,title){
+plot.sim_result = function(Ans,title,L){
 	Prey= Ans$Prey
 	Predator = Ans$Predator
 	plot(0,0,type="n",
@@ -126,6 +132,7 @@ plot.sim_result = function(Ans,title){
 	)
 	lines(t,Prey,col="blue",lwd=3)
 	lines(t,Predator*0.99,col="red",lwd=3,lty="dashed")
+	lines(t,L,col="gray",lwd=3)
 }
 
 #plot figure summrizing assumption
@@ -140,7 +147,7 @@ plot.sim_result = function(Ans,title){
 #	L: light effect
 #return
 #	none
-plot.assumption=function(t,watertemp,sharktemp,V,U,L){
+plot.assumption=function(t,watertemp,sharktemp,V,U){
 	# assumption figure
 	par(mfrow=c(1,2))
 	plot(t,watertemp,col="blue",pch=15, xlab="time (t)",ylab="temperature")
@@ -148,13 +155,13 @@ plot.assumption=function(t,watertemp,sharktemp,V,U,L){
 	#	text(7,25.0,bquote('w'['t']))
 	points(t,sharktemp,col="red",pch=16)
 	lines(t,sharktemp,col="red",lty=1)
-	#points(t,calc.bodytemp(watertemp,4),col="purple",pch=16)
-	#lines(t,calc.bodytemp(watertemp,4),col="purple",lty=1)
-	#points(t,calc.bodytemp(watertemp,25),col="orange",pch=16)
-	#lines(t,calc.bodytemp(watertemp,25),col="orange",lty=1)
+	points(t,calc.bodytemp(watertemp,1),col="purple",pch=17)
+	lines(t,calc.bodytemp(watertemp,1),col="purple",lty=1)
+	points(t,calc.bodytemp(watertemp,10),col="orange",pch=18)
+	lines(t,calc.bodytemp(watertemp,10),col="orange",lty=1)
 	#	text(4,28,bquote('s'['t']))
-	par(new =T)
-	plot(t,L,col="orange",pch=17, type = "p", axes = FALSE, ylab = "",ylim=c(0,max(L)),main="temperature")
+#	par(new =T)
+#	plot(t,L,col="orange",pch=17, type = "p", axes = FALSE, ylab = "",ylim=c(0,max(L)),main="temperature")
 	lines(t,L,col="orange",lty=1)
 	#	text(5,0.25,bquote(lambda['t']))
 	axis(4)
@@ -168,8 +175,10 @@ plot.assumption=function(t,watertemp,sharktemp,V,U,L){
 	points(t,U,col="blue",pch=15)
 	lines(t,U,col="blue",lty=1)
 	#	text(18,1.9,bquote('u'['t']))
-	points(t,V-U,col="purple",pch=2)
+	points(t,V-U,col="purple",pch=17)
 	lines(t,V-U,col="purple",lty=1)
+	points(t,(V-U)^3.0,col="green",pch=18)
+	lines(t,(V-U)^3.0,col="green",lty=1)
 	#	text(17,0.9,bquote(list('v'['t'],'- u'['t'])))
 }
 
@@ -412,47 +421,58 @@ activetime6.get_plotmode = function(category){
 	clr[majortime== 110111]  = "white"	#asynchronous
 	clr[majortime== 101111]  = "white"	#asynchronous
 	clr[majortime== 011111]  = "white"	#asynchronous
-	
-	clr[majortime== 000011]  = "blue"	#early evening
-	clr[majortime== 000001]  = "blue"	#early evening
-
+	# only last  periods	
+	clr[majortime== 000011]  = "blue"	#early nocturnal
+	clr[majortime== 000001]  = "blue"	#early nocturnal
+	# only first  periods	
 	clr[majortime== 100000]  = "darkviolet"#late nocturnal
 	clr[majortime== 110000]  = "darkviolet"#late nocturnal
-
-	clr[majortime== 110011]  = "navyblue"	#long noctornal
-	clr[majortime== 110001]  = "navyblue"	#long noctornal
-	clr[majortime== 100011]  = "navyblue"	#long noctornal
-	clr[majortime== 100001]  = "navyblue"	#long noctornal
-	
-	clr[majortime== 000010]  = "cyan"	#sunset
-
-	clr[majortime== 001110]  = "red"	#diurnal
-	clr[majortime== 011110]  = "red"	#diurnal
-	clr[majortime== 001100]  = "red"	#diurnal
-
+	# both firs and last periods
+	clr[majortime== 110011]  = "navyblue"	#long nocturnal
+	clr[majortime== 110001]  = "navyblue"	#long nocturnal
+	clr[majortime== 100011]  = "navyblue"	#long nocturnal
+	clr[majortime== 100001]  = "navyblue"	#long nocturnal
+	clr[majortime== 100111]  = "navyblue"	#long nocturnal
+	clr[majortime== 101011]  = "navyblue"	#long nocturnal
+	clr[majortime== 111001]  = "navyblue"	#long nocturnal
+	clr[majortime== 111000]  = "navyblue"	#late nocturnal
+	# only sunset
+	clr[majortime== 000010]  = "pink"	#sunset
+	clr[majortime== 010000]  = "deeppink"	#sunrise
+	clr[majortime== 011000]  = "deeppink"	#sunrise
+	# not in dark 
+	clr[majortime== 001110]  = "yellow"	#diurnal
+	clr[majortime== 011110]  = "yellow"	#diurnal
+	clr[majortime== 001100]  = "yellow"	#diurnal
+  # only in pm but not dark
 	clr[majortime== 000110]  = "orange"	#afternoon
 	clr[majortime== 000100]  = "orange"	#afternoon
+  # all pm
+	clr[majortime== 001111]  = "plum"	#pm
+	clr[majortime== 000111]  = "plum"	#pm
+	# FOLLOWING ALL 2 PERIODS
+	
+	# 2nd + 5th, not after dark
+	clr[majortime== 010010]  = "gold2"	#crepuscular
+	clr[majortime== 011010]  = "gold3"	#crepuscular
+	clr[majortime== 010110]  = "gold4"	#crepuscular
+	clr[majortime== 110010]  = "goldenrod1"	#crepuscular
+	clr[majortime== 111010]  = "goldenrod2"	#crepuscular
+	clr[majortime== 110110]  = "goldenrod3"	#crepuscular
+	#clr[majortime== 101011]  = "goldenrod4"	#crepuscular
+	
+	# crepuscular + after dark
+	clr[majortime== 011011]  = "seagreen1"	#after sunset crepuscular
+	clr[majortime== 010011]  = "seagreen2"	#after sunset crepuscular
+	clr[majortime== 010111]  = "seagreen3"	#after sunset crepuscular
+	
+	# not 2nd + 5th
+	clr[majortime== 001010]  = "red1"	#after sunrise crepuscular
+	clr[majortime== 001011]  = "red2"	#after sunrise crepuscular
+#	clr[majortime== 011001]  = "red3"	#after sunset crepuscular
+	#clr[majortime== 010001]  = "red4"	#after sunset crepuscular
+	
 
-	clr[majortime== 001111]  = "yellow"	#afternoon
-	clr[majortime== 000111]  = "yellow"	#afternoon
-	
-	clr[majortime== 011011]  = "forestgreen"	#blacktips
-	clr[majortime== 010011]  = "forestgreen"	#blacktips
-	clr[majortime== 010111]  = "forestgreen"	#blacktips
-	
-	clr[majortime== 010010]  = "green"	#crepuscular
-	clr[majortime== 011010]  = "green"	#crepuscular
-	clr[majortime== 110010]  = "green"	#crepuscular
-	clr[majortime== 010110]  = "green"	#crepuscular
-	clr[majortime== 111010]  = "green"	#crepuscular
-	clr[majortime== 110110]  = "green"	#crepuscular
-	
-	clr[majortime== 001010]  = "yellowgreen"	#after sunrise crepuscular
-	clr[majortime== 001011]  = "yellowgreen"	#after sunrise crepuscular
-	clr[majortime== 101011]  = "yellowgreen"	#after sunrise crepuscular
-
-	clr[majortime== 011001]  = "yellowgreen"	#after sunset crepuscular
-	clr[majortime== 010001]  = "yellowgreen"	#after sunset crepuscular
 	
 	#definition of dot colours
 	dotclr = category
@@ -470,11 +490,16 @@ activetime6.get_plotmode = function(category){
 #	plotmode: matrix of plotmode (return value of majortime.get_plotmode or majortime5.get_plotmode)
 #	dotcex: change the scale of dots 
 image.plotmode=function(x.seq,y.seq,plotmode,dotcex = 0.33,...){
+  
+  colstrat=c("nothing","asynchronous","early_nocturnal","late_nocturnal","long_nocturnal","sunrise","sunset","diurnal","afternoon","pm","crepuscular","post-sunrise crepuscular","post-sunset crepuscular")
+  collabs=c("black","white","blue","darkviolet","navyblue","deeppink","pink","yellow","orange","plum","gold","red","seagreen2")
+  
 	fz = factor(plotmode$clr)
 	z = matrix(as.integer(fz),length(x.seq),length(y.seq))
 	clr = levels(fz)
 	clr[clr=="none"] = rgb(0,0,0,0)
 	image(x.seq,y.seq,z,col=levels(fz),...)
+	legend("topright",legend=colstrat, pch=16, col=collabs, cex=0.8, pt.cex = 2.2)
 	
 	fd = factor(plotmode$dotclr)
 	for(clr in levels(fd)){
