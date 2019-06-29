@@ -1,57 +1,85 @@
-m = 0.5
-rv = 10
-
-delay = function(m,rv){
+delay = function(M,vk,uk){
+  m = 2*acos(-1)*M/24
+  rv = vk/uk
   acos((rv - 1 - m^2)/sqrt(((rv-1)^2+m^2)*(1+m^2)))/acos(-1)*12
 }
-
-
-M = seq(0,10,length=101)
-m = 2*acos(-1)*M/24
-png("Y_delay.png", height = 1200,width=1600)
-par(cex=4.0)
-plot(M,delay(m,1.0),type="l", lwd=6,ylim=c(0,12),xlab="",ylab="")
-lines(M,delay(m,2.0),lwd=6,col="blue")
-lines(M,delay(m,1.25),lwd=6,col="forestgreen")
-lines(M,delay(m,0.8),lwd=6,col="orange")
-lines(M,delay(m,0.5),lwd=6,col="red")
-dev.off()
-
-m = 0.5
-rv = 10
-
-
-ampl = function(m,rv){
+ampl = function(M,vk,uk){
+  m = 2*acos(-1)*M/24
+  rv = vk/uk
   sqrt(((rv-1)^2+m^2)/(1+m^2))
 }
+
+vk= 0.2
+uk = 0.2
+
+M = seq(0,10,length=101)
+png("Y_delay.png", height = 1200,width=1600)
+par(cex=4.0)
+plot(M,delay(M,vk,uk),type="l", lwd=6,ylim=c(0,12),xlab="",ylab="")
+lines(M,delay(M,2.0*vk,uk),lwd=6,col="blue")
+lines(M,delay(M,1.25*vk,uk),lwd=6,col="forestgreen")
+lines(M,delay(M,0.8*vk,uk),lwd=6,col="orange")
+lines(M,delay(M,0.5*vk,uk),lwd=6,col="red")
+dev.off()
 
 png("Y_ampl.png", height = 1200,width=1600)
 par(cex=4.0)
 M = seq(0,10,length=101)
-m = 2*acos(-1)*M/24
-plot(M,ampl(m,1.0),type="l", lwd=6,ylim=c(0,2),xlab="",ylab="")
-lines(M,ampl(m,3.0),lwd=6,col="purple")
-lines(M,ampl(m,2.0),lwd=6,col="blue")
-lines(M,ampl(m,1.25),lwd=6,col="forestgreen")
-lines(M,ampl(m,0.8),lwd=6,col="orange")
-lines(M,ampl(m,0.5),lwd=6,col="red")
+plot(M,ampl(M,1.0*vk,uk),type="l", lwd=6,ylim=c(0,2),xlab="",ylab="")
+lines(M,ampl(M,3.0*vk,uk),lwd=6,col="purple")
+lines(M,ampl(M,2.0*vk,uk),lwd=6,col="blue")
+lines(M,ampl(M,1.25*vk,uk),lwd=6,col="forestgreen")
+lines(M,ampl(M,0.8*vk,uk),lwd=6,col="orange")
+lines(M,ampl(M,0.5*vk,uk),lwd=6,col="red")
 dev.off()
 
+t = seq(-24,48,by=0.1)
+tw = 15
+wmax=30
+wmin=25
+v0 = 1.5
+vk = 0.2
+h = 1
+c = 0.15
 
+u0 = 1.0
+uk =0.2
+a = 1.0
+omega = 1.0
+mb = 0.2
+mx = 1.0
+my = 0.5
+b = 1
+l0 = 0.5
+lk = 5.0
+ll = 0.3
+phi = 0.1
 
-M = seq(0,10,length=101)
-m = 2*acos(-1)*M/24
-rv = seq(0,3,length=101)
-plot(M,ampl(0.2,rv),type="l", lwd=3,ylim=c(0,2),xlab="M",ylab="delay (hours)")
-lines(M,ampl(0.2,rv),lwd=3,col="purple")
-lines(M,ampl(0.5,rv),lwd=3,col="blue")
-lines(M,ampl(1.0,rv),lwd=3,col="forestgreen")
-lines(M,ampl(2.0,rv),lwd=3,col="orange")
-#lines(M,ampl(m,0.5),lwd=3,col="red")
+swimdif = function(t){
+  v0-u0+(wmax-wmin)/2*uk*ampl(M,vk,uk)*cos((t-tw-delay(M,vk,uk))/12*acos(-1))
+}
+light_effect = function(t){
+  #Around twilight_coef = 0.3 seems to be reasonable because
+  #	- the definition of astronominal twilight is that the sun is less than -18 degree below the horizon. 
+  #	- When the Culmination altitute = 90 degree, 18 degree passes for 1.2 hours, so twilight start from t = 4.8 and finish at t=19.2.
+  #	- This time becomes longer when the Culmination altitude is less than 90 degree.
+  #	- At twilight_coef = 0.3,
+  #		- the sea is perfectly dark when t is from 20.5 to 3.5.
+  #		- the sea is slightly bright (3% of noon) at t=4.5, 19.5
+  #		- the light level rach to 20% and 40% of noon at t=5.5, 6.5.
+  twilight_coef = 0.3
+  l_min = l0
+  light_influence = lk
+  lwave=(1-twilight_coef)*cos(2*pi*(t-12)/24) + twilight_coef
+  lwave[lwave<0] = 0
+  alpha = log(1.0/l_min)
+  return(exp(-alpha*lwave^(1/light_influence)))
+}
+
 
 
 plot_daycycle = function(ylim){
-  plot(0:24,0:24,ylim=ylim,xaxt="n",yaxt="n",type="n",xlab="",ylab="")
+  plot(0:24,0:24,xaxs = "i", ylim=ylim,xaxt="n",yaxt="n",type="n",xlab="",ylab="")
   axis(1,at=c(0,3,6,9,12,15,18,21,24))
   polygon(c(-100,-100,6,6),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
   polygon(c(18,18,100,100),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
@@ -78,198 +106,585 @@ plot_range_box = function(x,y,range,col="black"){
   }
 }
 
-png("case_1.png",width=1600,height=900)
-par(cex=3.0)
+# Fig X2 -------------------------------------
+vk = uk*2
+l0=1.0
+lty="solid"
+M = 10
+png("wave_1a.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot(t,swimdif(t),type="n",xlim=c(0,24),xaxs="i",xlab="",ylab="",xaxt="n")
+polygon(c(-100,-100,6,6),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+polygon(c(18,18,100,100),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+lines(c(0,0),c(-100,100))
+lines(c(12,12),c(-100,100))
+lines(c(24,24),c(-100,100))
+lines(c(-100,100),c(0.8,0.8),lty="dotted",lwd=4,col="black")
+lines(c(-100,100),c(0.4,0.4),lty="dotted",lwd=4,col="black")
+M = 10
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="blue",lty=lty)
+M = 4
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="forestgreen",lty=lty)
+M = 1
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="red",lty=lty)
+dev.off()
+
+vk = uk*2
+l0=0.5
+lty="solid"
+M = 10
+png("wave_1b.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot(t,swimdif(t),type="n",xlim=c(0,24),xaxs="i",xlab="",ylab="",xaxt="n")
+polygon(c(-100,-100,6,6),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+polygon(c(18,18,100,100),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+lines(c(0,0),c(-100,100))
+lines(c(12,12),c(-100,100))
+lines(c(24,24),c(-100,100))
+lines(c(-100,100),c(0.8,0.8),lty="dotted",lwd=4,col="black")
+lines(c(-100,100),c(0.4,0.4),lty="dotted",lwd=4,col="black")
+
+M = 10
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="blue",lty=lty)
+M = 4
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="forestgreen",lty=lty)
+M = 1
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="red",lty=lty)
+dev.off()
+
+vk = uk*0.3
+l0=1.0
+lty="solid"
+M = 10
+png("wave_1c.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot(t,swimdif(t),type="n",xlim=c(0,24),xaxs="i",xlab="",ylab="",xaxt="n")
+polygon(c(-100,-100,6,6),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+polygon(c(18,18,100,100),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+lines(c(0,0),c(-100,100))
+lines(c(12,12),c(-100,100))
+lines(c(24,24),c(-100,100))
+lines(c(-100,100),c(0.8,0.8),lty="dotted",lwd=4,col="black")
+lines(c(-100,100),c(0.4,0.4),lty="dotted",lwd=4,col="black")
+
+M = 10
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="blue",lty=lty)
+M = 4
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="forestgreen",lty=lty)
+M = 1
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="red",lty=lty)
+dev.off()
+
+png("bar_1a.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
 plot_daycycle(c(-0.4,6))
 x = seq(-24,48,by=0.1)
 y=5
+vk=uk*2
+thr = 0.8
+M=1
+l0=1.0
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr,col="red")
+y=4
+M =4
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr,col="forestgreen")
+y=3
+M =10
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr,col="blue")
+y=2
 thr = 0.4
-m =0.1
-rv=2
-plot_range_box(x,y,(ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))>thr)
-y=4
-m =1.0
-rv=2
-plot_range_box(x,y,(ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))>thr)
-y=3
-m =10.0
-rv=2
-plot_range_box(x,y,(ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))>thr)
-y=2
-m =0.1
-rv=0.2
-plot_range_box(x,y,(ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))>thr)
+M=1
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr,col="red")
 y=1
-m =1.0
-rv=0.2
-plot_range_box(x,y,(ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))>thr)
+M =4
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr,col="forestgreen")
 y=0
-m =10.0
-rv=0.2
-plot_range_box(x,y,(ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))>thr)
+M =10
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr,col="blue")
 dev.off()
 
-
-png("case_2.png",width=1600,height=1200)
-par(cex=3.0)
-plot_daycycle(c(-0.4,9))
+png("bar_1b.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot_daycycle(c(-0.4,6))
 x = seq(-24,48,by=0.1)
-
-thru = 10
-thrl = -0.4
-y=8
-m =0.1
-rv=2
-dv = (ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))
-plot_range_box(x,y,thrl<dv, col="skyblue")
-plot_range_box(x,y,dv<thru, col="pink")
-plot_range_box(x,y,thrl<dv&dv<thru)
 y=5
-m =1.0
-rv=2
-dv = (ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))
-plot_range_box(x,y,thrl<dv, col="skyblue")
-plot_range_box(x,y,dv<thru, col="pink")
-plot_range_box(x,y,thrl<dv&dv<thru)
-y=2
-m =10.0
-rv=2
-dv = (ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))
-plot_range_box(x,y,thrl<dv, col="skyblue")
-plot_range_box(x,y,dv<thru, col="pink")
-plot_range_box(x,y,thrl<dv&dv<thru)
-
-thru = 0.4
-thrl = -10
-y=7
-m =0.1
-rv=2
-dv = (ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))
-plot_range_box(x,y,thrl<dv, col="skyblue")
-plot_range_box(x,y,dv<thru, col="pink")
-plot_range_box(x,y,thrl<dv&dv<thru)
+vk=uk*2
+thr = 0.8
+M=1
+l0=0.5
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr,col="red")
 y=4
-m =1.0
-rv=2
-dv = (ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))
-plot_range_box(x,y,thrl<dv, col="skyblue")
-plot_range_box(x,y,dv<thru, col="pink")
-plot_range_box(x,y,thrl<dv&dv<thru)
-y=1
-m =10.0
-rv=2
-dv = (ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))
-plot_range_box(x,y,thrl<dv, col="skyblue")
-plot_range_box(x,y,dv<thru, col="pink")
-plot_range_box(x,y,thrl<dv&dv<thru)
-
-thru = 0.4
-thrl = -0.4
-y=6
-m =0.1
-rv=2
-dv = (ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))
-plot_range_box(x,y,thrl<dv, col="skyblue")
-plot_range_box(x,y,dv<thru, col="pink")
-plot_range_box(x,y,thrl<dv&dv<thru)
+M =4
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr,col="forestgreen")
 y=3
-m =1.0
-rv=2
-dv = (ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))
-plot_range_box(x,y,thrl<dv, col="skyblue")
-plot_range_box(x,y,dv<thru, col="pink")
-plot_range_box(x,y,thrl<dv&dv<thru)
+M =10
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr,col="blue")
+y=2
+thr = 0.4
+M=1
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr,col="red")
+y=1
+M =4
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr,col="forestgreen")
 y=0
-m =10.0
-rv=2
-dv = (ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))
-plot_range_box(x,y,thrl<dv, col="skyblue")
-plot_range_box(x,y,dv<thru, col="pink")
-plot_range_box(x,y,thrl<dv&dv<thru)
-
+M =10
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr,col="blue")
 dev.off()
 
-
-
-png("case_3.png",width=1600,height=1200)
-par(cex=3.0)
-
-plot_daycycle(c(-0.4,9))
+png("bar_1c.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot_daycycle(c(-0.4,6))
 x = seq(-24,48,by=0.1)
-
-thru = -0.5
-thrdv = 0.4
-y=8
-m =0.1
-rv=2
-dv = (ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))
-u = cos((x-15)/24*2*acos(-1))
-plot_range_box(x,y,thrdv<dv,col="skyblue")
-plot_range_box(x,y,thru<u,col="pink")
-plot_range_box(x,y,thrdv<dv&thru<u)
-y=7
-m =1.0
-rv=2
-dv = (ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))
-plot_range_box(x,y,thrdv<dv,col="skyblue")
-plot_range_box(x,y,thru<u,col="pink")
-plot_range_box(x,y,thrdv<dv&thru<u)
-y=6
-m =10.0
-rv=2
-dv = (ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))
-plot_range_box(x,y,thrdv<dv,col="skyblue")
-plot_range_box(x,y,thru<u,col="pink")
-plot_range_box(x,y,thrdv<dv&thru<u)
-
-thru = 0.3
-thrdv =-0.5
 y=5
-m =0.1
-rv=2
-dv = (ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))
-u = cos((x-15)/24*2*acos(-1))
-plot_range_box(x,y,thrdv<dv,col="skyblue")
-plot_range_box(x,y,thru<u,col="pink")
-plot_range_box(x,y,thrdv<dv&thru<u)
+thr = 0.8
+vk=uk*0.3
+M=1
+l0=1.0
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr,col="red")
 y=4
-m =1.0
-rv=2
-dv = (ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))
-plot_range_box(x,y,thrdv<dv,col="skyblue")
-plot_range_box(x,y,thru<u,col="pink")
-plot_range_box(x,y,thrdv<dv&thru<u)
+M =4
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr,col="forestgreen")
 y=3
-m =10.0
-rv=2
-dv = (ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))
-plot_range_box(x,y,thrdv<dv,col="skyblue")
-plot_range_box(x,y,thru<u,col="pink")
-plot_range_box(x,y,thrdv<dv&thru<u)
-
-thru = -0.5
-thrdv =-0.5
+M =10
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr,col="blue")
 y=2
-m =0.1
-rv=2
-dv = (ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))
-u = cos((x-15)/24*2*acos(-1))
-plot_range_box(x,y,thrdv<dv,col="skyblue")
-plot_range_box(x,y,thru<u,col="pink")
-plot_range_box(x,y,thrdv<dv&thru<u)
+thr = 0.4
+M=1
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr,col="red")
 y=1
-m =1.0
-rv=2
-dv = (ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))
-plot_range_box(x,y,thrdv<dv,col="skyblue")
-plot_range_box(x,y,thru<u,col="pink")
-plot_range_box(x,y,thrdv<dv&thru<u)
+M =4
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr,col="forestgreen")
 y=0
-m =10.0
-rv=2
-dv = (ampl(m,rv)*cos((x-15-delay(m,rv))/24*2*acos(-1)))
-plot_range_box(x,y,thrdv<dv,col="skyblue")
-plot_range_box(x,y,thru<u,col="pink")
-plot_range_box(x,y,thrdv<dv&thru<u)
-
+M =10
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr,col="blue")
 dev.off()
+
+
+# Fig X3 -------------------------------------
+vk = uk*2
+l0=1.0
+lty="solid"
+v0=1.5
+M = 10
+png("wave_2a.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot(t,swimdif(t),type="n",xlim=c(0,24),xaxs="i",xlab="",ylab="",xaxt="n")
+polygon(c(-100,-100,6,6),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+polygon(c(18,18,100,100),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+lines(c(0,0),c(-100,100))
+lines(c(12,12),c(-100,100))
+lines(c(24,24),c(-100,100))
+lines(c(-100,100),c(0.6,0.6),lty="dashed",lwd=4,col="black")
+lines(c(-100,100),c(0.2,0.2),lty="dotted",lwd=4,col="black")
+M = 10
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="blue",lty=lty)
+M = 4
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="forestgreen",lty=lty)
+M = 1
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="red",lty=lty)
+dev.off()
+
+vk = uk*2
+l0=0.5
+lty="solid"
+v0=1.5
+M = 10
+png("wave_2b.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot(t,swimdif(t),type="n",xlim=c(0,24),xaxs="i",xlab="",ylab="",xaxt="n")
+polygon(c(-100,-100,6,6),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+polygon(c(18,18,100,100),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+lines(c(0,0),c(-100,100))
+lines(c(12,12),c(-100,100))
+lines(c(24,24),c(-100,100))
+lines(c(-100,100),c(0.6,0.6),lty="dashed",lwd=4,col="black")
+lines(c(-100,100),c(0.2,0.2),lty="dotted",lwd=4,col="black")
+M = 10
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="blue",lty=lty)
+M = 4
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="forestgreen",lty=lty)
+M = 1
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="red",lty=lty)
+dev.off()
+
+
+vk = uk*2
+l0=1.0
+lty="solid"
+M = 4
+v0=1.5
+png("wave_2c.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot(t,swimdif(t),type="n",xlim=c(0,24),xaxs="i",xlab="",ylab="",xaxt="n")
+polygon(c(-100,-100,6,6),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+polygon(c(18,18,100,100),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+lines(c(0,0),c(-100,100))
+lines(c(12,12),c(-100,100))
+lines(c(24,24),c(-100,100))
+lines(c(-100,100),c(0.6,0.6),lty="dashed",lwd=4,col="black")
+lines(c(-100,100),c(0.2,0.2),lty="dotted",lwd=4,col="black")
+v0 = 1.25
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="red",lty=lty)
+v0 = 1.5
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="forestgreen",lty=lty)
+v0 = 1.75
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="blue",lty=lty)
+v0=1.5
+dev.off()
+
+
+vk = uk*2
+l0=0.5
+lty="solid"
+M = 4
+v0=1.5
+png("wave_2d.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot(t,swimdif(t),type="n",xlim=c(0,24),xaxs="i",xlab="",ylab="",xaxt="n")
+polygon(c(-100,-100,6,6),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+polygon(c(18,18,100,100),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+lines(c(0,0),c(-100,100))
+lines(c(12,12),c(-100,100))
+lines(c(24,24),c(-100,100))
+lines(c(-100,100),c(0.6,0.6),lty="dashed",lwd=4,col="black")
+lines(c(-100,100),c(0.2,0.2),lty="dotted",lwd=4,col="black")
+v0 = 1.25
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="red",lty=lty)
+v0 = 1.5
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="forestgreen",lty=lty)
+v0 = 1.75
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="blue",lty=lty)
+v0=1.5
+dev.off()
+
+png("bar_2a.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot_daycycle(c(-0.4,6))
+x = seq(-24,48,by=0.1)
+y=5
+vk=uk*2
+v0 = 1.5
+thr = 0.6
+M=1
+l0=1.0
+plot_range_box(x,y,swimdif(t)*light_effect(t)<thr,col="red")
+y=4
+M =4
+plot_range_box(x,y,swimdif(t)*light_effect(t)<thr,col="forestgreen")
+y=3
+M =10
+plot_range_box(x,y,swimdif(t)*light_effect(t)<thr,col="blue")
+y=2
+thr = 0.6
+M=1
+plot_range_box(x,y,0.2<swimdif(t)*light_effect(t)&swimdif(t)*light_effect(t)<thr,col="red")
+y=1
+M =4
+plot_range_box(x,y,0.2<swimdif(t)*light_effect(t)&swimdif(t)*light_effect(t)<thr,col="forestgreen")
+y=0
+M =10
+plot_range_box(x,y,0.2<swimdif(t)*light_effect(t)&swimdif(t)*light_effect(t)<thr,col="blue")
+dev.off()
+
+png("bar_2b.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot_daycycle(c(-0.4,6))
+x = seq(-24,48,by=0.1)
+y=5
+vk=uk*2
+v0 = 1.5
+thr = 0.6
+M=1
+l0=0.5
+plot_range_box(x,y,swimdif(t)*light_effect(t)<thr,col="red")
+y=4
+M =4
+plot_range_box(x,y,swimdif(t)*light_effect(t)<thr,col="forestgreen")
+y=3
+M =10
+plot_range_box(x,y,swimdif(t)*light_effect(t)<thr,col="blue")
+y=2
+thr = 0.6
+M=1
+plot_range_box(x,y,0.2<swimdif(t)*light_effect(t)&swimdif(t)*light_effect(t)<thr,col="red")
+y=1
+M =4
+plot_range_box(x,y,0.2<swimdif(t)*light_effect(t)&swimdif(t)*light_effect(t)<thr,col="forestgreen")
+y=0
+M =10
+plot_range_box(x,y,0.2<swimdif(t)*light_effect(t)&swimdif(t)*light_effect(t)<thr,col="blue")
+dev.off()
+
+png("bar_2c.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot_daycycle(c(-0.4,6))
+x = seq(-24,48,by=0.1)
+vk=uk*2
+M=4
+l0 = 1.0
+thr = 0.6
+v0 = 1.25
+y=5
+plot_range_box(x,y,swimdif(t)*light_effect(t)<thr,col="red")
+v0 = 1.5
+y=4
+plot_range_box(x,y,swimdif(t)*light_effect(t)<thr,col="forestgreen")
+v0 = 1.75
+y=3
+plot_range_box(x,y,swimdif(t)*light_effect(t)<thr,col="blue")
+v0 = 1.25
+y=2
+plot_range_box(x,y,0.2<swimdif(t)*light_effect(t)&swimdif(t)*light_effect(t)<thr,col="red")
+v0 = 1.5
+y=1
+plot_range_box(x,y,0.2<swimdif(t)*light_effect(t)&swimdif(t)*light_effect(t)<thr,col="forestgreen")
+v0 = 1.75
+y=0
+plot_range_box(x,y,0.2<swimdif(t)*light_effect(t)&swimdif(t)*light_effect(t)<thr,col="blue")
+dev.off()
+
+
+png("bar_2d.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot_daycycle(c(-0.4,6))
+x = seq(-24,48,by=0.1)
+vk=uk*2
+M=4
+l0 = 0.5
+thr = 0.6
+v0 = 1.25
+y=5
+plot_range_box(x,y,swimdif(t)*light_effect(t)<thr,col="red")
+v0 = 1.5
+y=4
+plot_range_box(x,y,swimdif(t)*light_effect(t)<thr,col="forestgreen")
+v0 = 1.75
+y=3
+plot_range_box(x,y,swimdif(t)*light_effect(t)<thr,col="blue")
+v0 = 1.25
+y=2
+plot_range_box(x,y,0.2<swimdif(t)*light_effect(t)&swimdif(t)*light_effect(t)<thr,col="red")
+v0 = 1.5
+y=1
+plot_range_box(x,y,0.2<swimdif(t)*light_effect(t)&swimdif(t)*light_effect(t)<thr,col="forestgreen")
+v0 = 1.75
+y=0
+plot_range_box(x,y,0.2<swimdif(t)*light_effect(t)&swimdif(t)*light_effect(t)<thr,col="blue")
+dev.off()
+
+
+
+
+
+# Fig X4 -------------------------------------
+vk = uk*2
+v0=1.5
+l0=1.0
+lty="solid"
+M = 10
+png("wave_3a.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot(t,swimdif(t),type="n",xlim=c(0,24),xaxs="i",xlab="",ylab="",xaxt="n")
+polygon(c(-100,-100,6,6),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+polygon(c(18,18,100,100),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+polygon(c(7,7,23,23),c(-100,100,100,-100),col=rgb(1,0,0,0.2),border=rgb(0,0,0,0))
+lines(c(0,0),c(-100,100))
+lines(c(12,12),c(-100,100))
+lines(c(24,24),c(-100,100))
+lines(c(-100,100),c(0.2,0.2),lty="dotted",lwd=4,col="black")
+lines(c(-100,100),c(0.5,0.5),lty="dotted",lwd=4,col="black")
+M = 10
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="blue",lty=lty)
+M = 4
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="forestgreen",lty=lty)
+M = 1
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="red",lty=lty)
+dev.off()
+
+vk = uk*2
+v0=1.5
+l0=0.5
+lty="solid"
+M = 10
+png("wave_3b.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot(t,swimdif(t),type="n",xlim=c(0,24),xaxs="i",xlab="",ylab="",xaxt="n")
+polygon(c(-100,-100,6,6),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+polygon(c(18,18,100,100),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+polygon(c(7,7,23,23),c(-100,100,100,-100),col=rgb(1,0,0,0.2),border=rgb(0,0,0,0))
+lines(c(0,0),c(-100,100))
+lines(c(12,12),c(-100,100))
+lines(c(24,24),c(-100,100))
+lines(c(-100,100),c(0.2,0.2),lty="dotted",lwd=4,col="black")
+lines(c(-100,100),c(0.5,0.5),lty="dotted",lwd=4,col="black")
+M = 10
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="blue",lty=lty)
+M = 4
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="forestgreen",lty=lty)
+M = 1
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="red",lty=lty)
+dev.off()
+
+vk = uk*2
+l0=1.0
+lty="solid"
+M = 4
+v0=1.5
+png("wave_3c.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot(t,swimdif(t),type="n",xlim=c(0,24),xaxs="i",xlab="",ylab="",xaxt="n")
+polygon(c(-100,-100,6,6),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+polygon(c(18,18,100,100),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+polygon(c(7,7,23,23),c(-100,100,100,-100),col=rgb(1,0,0,0.2),border=rgb(0,0,0,0))
+lines(c(0,0),c(-100,100))
+lines(c(12,12),c(-100,100))
+lines(c(24,24),c(-100,100))
+lines(c(-100,100),c(0.2,0.2),lty="dotted",lwd=4,col="black")
+lines(c(-100,100),c(0.5,0.5),lty="dotted",lwd=4,col="black")
+v0=1.25
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="red",lty=lty)
+v0=1.75
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="blue",lty=lty)
+v0=1.5
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="forestgreen",lty=lty)
+dev.off()
+
+vk = uk*2
+l0=0.5
+lty="solid"
+M = 4
+v0=1.5
+png("wave_3d.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot(t,swimdif(t),type="n",xlim=c(0,24),xaxs="i",xlab="",ylab="",xaxt="n")
+polygon(c(-100,-100,6,6),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+polygon(c(18,18,100,100),c(-100,100,100,-100),col="lightgrey",border=rgb(0,0,0,0))
+polygon(c(7,7,23,23),c(-100,100,100,-100),col=rgb(1,0,0,0.2),border=rgb(0,0,0,0))
+lines(c(0,0),c(-100,100))
+lines(c(12,12),c(-100,100))
+lines(c(24,24),c(-100,100))
+lines(c(-100,100),c(0.2,0.2),lty="dotted",lwd=4,col="black")
+lines(c(-100,100),c(0.5,0.5),lty="dotted",lwd=4,col="black")
+v0=1.25
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="red",lty=lty)
+v0=1.75
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="blue",lty=lty)
+v0=1.5
+lines(t,swimdif(t)*light_effect(t),lwd=6,col="forestgreen",lty=lty)
+dev.off()
+
+png("bar_3a.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot_daycycle(c(-0.4,6))
+x = seq(-24,48,by=0.1)
+y=5
+vk=uk*2
+thr = 0.5
+IsX = (7<=x & x<=23)
+M=1
+l0=1.0
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="red")
+y=4
+M =4
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="forestgreen")
+y=3
+M =10
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="blue")
+y=2
+thr = 0.2
+M=1
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="red")
+y=1
+M =4
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="forestgreen")
+y=0
+M =10
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="blue")
+dev.off()
+
+png("bar_3b.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot_daycycle(c(-0.4,6))
+x = seq(-24,48,by=0.1)
+y=5
+vk=uk*2
+thr = 0.5
+M=1
+l0=0.5
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="red")
+y=4
+M =4
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="forestgreen")
+y=3
+M =10
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="blue")
+y=2
+thr = 0.2
+M=1
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="red")
+y=1
+M =4
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="forestgreen")
+y=0
+M =10
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="blue")
+dev.off()
+
+png("bar_3c.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot_daycycle(c(-0.4,6))
+x = seq(-24,48,by=0.1)
+y=5
+vk=uk*2
+thr = 0.5
+M=4
+l0=1.0
+v0=1.25
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="red")
+y=4
+v0=1.5
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="forestgreen")
+y=3
+v0=1.75
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="blue")
+y=2
+thr = 0.2
+v0=1.25
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="red")
+y=1
+v0=1.5
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="forestgreen")
+y=0
+v0=1.75
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="blue")
+dev.off()
+
+png("bar_3d.png",width=1600,height=1200)
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot_daycycle(c(-0.4,6))
+x = seq(-24,48,by=0.1)
+y=5
+vk=uk*2
+thr = 0.5
+M=4
+l0=0.5
+v0=1.25
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="red")
+y=4
+v0=1.5
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="forestgreen")
+y=3
+v0=1.75
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="blue")
+y=2
+thr = 0.2
+v0=1.25
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="red")
+y=1
+v0=1.5
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="forestgreen")
+y=0
+v0=1.75
+plot_range_box(x,y,swimdif(t)*light_effect(t)>thr&IsX,col="blue")
+dev.off()
+
