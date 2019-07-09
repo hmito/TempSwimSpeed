@@ -68,14 +68,8 @@ calc.bodytemp = function(watertemp, mass, error = 1e-10){
 #calculate mass from sharkradius & skinthickness
 #	mathematically same with calc.shark.temp function if we use
 #  	calc.bodytemp(watertemp, calc.mass_for_bodytemp(sharkradius,skinthickness))
-calc.mass_for_bodytemp_old = function(sharkradius,skinthickness){
-	1/(2*0.6*0.031593/60/(sharkradius*log(sharkradius/(sharkradius-skinthickness))))
-}
 calc.mass_for_bodytemp = function(sharkradius,skinthickness){
-	log(sharkradius/(sharkradius-skinthickness))*(sharkradius-skinthickness)^2*4.18*10^6/(7200*0.6)
-}
-calc.coef_of_predation_cost = function(sharkradius,skinthickness, bodylength){
-	2*3.14*bodylength*0.60/log(sharkradius/(sharkradius-skinthickness))*3600
+	1/(2*0.6*0.031593/60/(sharkradius*log(sharkradius/(sharkradius-skinthickness))))
 }
 
 #calculate light effect with old definition
@@ -130,9 +124,9 @@ plot.sim_result = function(Ans,title,L){
 		  xlim=c(0,tnum),ylim=c(-0.02,1.02),       
 		  main=title
 	)
+	lines(t,L,col="gray",lwd=3)
 	lines(t,Prey,col="blue",lwd=3)
 	lines(t,Predator*0.99,col="red",lwd=3,lty="dashed")
-	lines(t,L,col="gray",lwd=3)
 }
 
 #plot figure summrizing assumption
@@ -160,8 +154,8 @@ plot.assumption=function(t,watertemp,sharktemp,V,U){
 	points(t,calc.bodytemp(watertemp,10),col="orange",pch=18)
 	lines(t,calc.bodytemp(watertemp,10),col="orange",lty=1)
 	#	text(4,28,bquote('s'['t']))
-#	par(new =T)
-#	plot(t,L,col="orange",pch=17, type = "p", axes = FALSE, ylab = "",ylim=c(0,max(L)),main="temperature")
+	#	par(new =T)
+	#	plot(t,L,col="orange",pch=17, type = "p", axes = FALSE, ylab = "",ylim=c(0,max(L)),main="temperature")
 	lines(t,L,col="orange",lty=1)
 	#	text(5,0.25,bquote(lambda['t']))
 	axis(4)
@@ -298,7 +292,7 @@ majortime5.get_category = function(Ans, MajorProb = 0.20){
 		{
 			p = Ans$Predator
 			group = c(rep(1,5),rep(2,4),rep(3,7),rep(4,4),rep(5,4))
-				
+			
 			for(igroup in unique(group)){
 				if(sum(p[group==igroup])/sum(p) > MajorProb){
 					ans = ans + 2^(igroup-1)
@@ -343,7 +337,7 @@ majortime5.get_plotmode = function(category){
 	
 	#remove information of peak numbers
 	majortime=(category%%100)
-
+	
 	#definition of image colours
 	clr = category
 	clr[category==category] = errclr #error
@@ -354,7 +348,7 @@ majortime5.get_plotmode = function(category){
 	clr[majortime== 17]  = "blue"	#nocturnal (20-4)
 	clr[majortime== 16]  = "purple"	#early night (20-23)
 	#etc...
-
+	
 	#definition of dot colours
 	dotclr = category
 	dotclr[category==category] = "none"
@@ -385,7 +379,7 @@ activetime6.get_category = function(Ans){
 			for(igroup in unique(group)){
 				if(sum(p[group==igroup])>0){
 					ans = ans + 10^(6-igroup)
-#					ans = ans + 2^(igroup-1)
+					#					ans = ans + 2^(igroup-1)
 				}
 			}
 		}
@@ -414,13 +408,13 @@ activetime6.get_plotmode = function(category){
 	clr[category==category] = errclr #error
 	#add assignment of colours in the following lines
 	clr[majortime== 000000]  = "black"	#nothing
-	clr[majortime== 111111]  = "white"	#asynchronous
-	clr[majortime== 111110]  = "white"	#asynchronous
-	clr[majortime== 111101]  = "white"	#asynchronous
-	clr[majortime== 111011]  = "white"	#asynchronous
-	clr[majortime== 110111]  = "white"	#asynchronous
-	clr[majortime== 101111]  = "white"	#asynchronous
-	clr[majortime== 011111]  = "white"	#asynchronous
+	clr[majortime== 111111]  = "gray95"	#asynchronous
+	clr[majortime== 111110]  = "gray90"	#asynchronous
+	clr[majortime== 111101]  = "gray85"	#asynchronous
+	clr[majortime== 111011]  = "gray80"	#asynchronous
+	clr[majortime== 110111]  = "gray75"	#asynchronous
+	clr[majortime== 101111]  = "gray70"	#asynchronous
+	clr[majortime== 011111]  = "gray65"	#asynchronous
 	# only last  periods	
 	clr[majortime== 000011]  = "blue"	#early nocturnal
 	clr[majortime== 000001]  = "blue"	#early nocturnal
@@ -444,10 +438,10 @@ activetime6.get_plotmode = function(category){
 	clr[majortime== 001110]  = "yellow"	#diurnal
 	clr[majortime== 011110]  = "yellow"	#diurnal
 	clr[majortime== 001100]  = "yellow"	#diurnal
-  # only in pm but not dark
+	# only in pm but not dark
 	clr[majortime== 000110]  = "orange"	#afternoon
 	clr[majortime== 000100]  = "orange"	#afternoon
-  # all pm
+	# all pm
 	clr[majortime== 001111]  = "plum"	#pm
 	clr[majortime== 000111]  = "plum"	#pm
 	# FOLLOWING ALL 2 PERIODS
@@ -469,15 +463,15 @@ activetime6.get_plotmode = function(category){
 	# not 2nd + 5th
 	clr[majortime== 001010]  = "red1"	#after sunrise crepuscular
 	clr[majortime== 001011]  = "red2"	#after sunrise crepuscular
-#	clr[majortime== 011001]  = "red3"	#after sunset crepuscular
+	#	clr[majortime== 011001]  = "red3"	#after sunset crepuscular
 	#clr[majortime== 010001]  = "red4"	#after sunset crepuscular
 	
-
+	
 	
 	#definition of dot colours
 	dotclr = category
 	dotclr[category==category] = "none"
-
+	
 	#list of error category (not assigned by any colour )
 	err = sort(unique(as.vector(category[clr == errclr])))
 	
@@ -490,10 +484,10 @@ activetime6.get_plotmode = function(category){
 #	plotmode: matrix of plotmode (return value of majortime.get_plotmode or majortime5.get_plotmode)
 #	dotcex: change the scale of dots 
 image.plotmode=function(x.seq,y.seq,plotmode,dotcex = 0.33,...){
-  
-  colstrat=c("nothing","asynchronous","early_nocturnal","late_nocturnal","long_nocturnal","sunrise","sunset","diurnal","afternoon","pm","crepuscular","post-sunrise crepuscular","post-sunset crepuscular")
-  collabs=c("black","white","blue","darkviolet","navyblue","deeppink","pink","yellow","orange","plum","gold","red","seagreen2")
-  
+	
+	colstrat=c("nothing","asynchronous","early_nocturnal","late_nocturnal","long_nocturnal","sunrise","sunset","diurnal","afternoon","pm","crepuscular","post-sunrise crepuscular","post-sunset crepuscular")
+	collabs=c("black","white","blue","darkviolet","navyblue","deeppink","pink","yellow","orange","plum","gold","red","seagreen2")
+	
 	fz = factor(plotmode$clr)
 	z = matrix(as.integer(fz),length(x.seq),length(y.seq))
 	clr = levels(fz)
