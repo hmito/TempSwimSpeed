@@ -205,34 +205,6 @@ for(my in c(0.0,0.5,1.0)){
 
 
 
-v0 = 1.5
-my = 0.5
-sharktemp=calc.bodytemp(watertemp,mass) 
-U = u0 + uk*(watertemp-(wmax+wmin)/2)
-V = v0 + vk*(sharktemp-(wmax+wmin)/2)
-L = calc.light_effect(t,l0,l_shape,0.3)
-Ans = tss_probforage_energygain_optimize_linear(V, U, alpha, rep(predcost,length=length(V)), L, my, phi, omega, beta, h, mb,mx)
-pred_eff = L*(V-U)^beta
-pred_thr = predcost/(1-predcost*h)
-pred_sthr = predcost/phi/(1-predcost*h)
-prey_eff= alpha*(1+omega*U)/((1-phi)*mx+my*pred_eff/(1+h*pred_eff))
-prey_peff= alpha/(1-phi) * alpha*(1+omega*U)/(mx+my*(1-h*predcost)*pred_eff^2/(1+h*pred_eff)/((1-h*predcost)*pred_eff-predcost))
-prey_reff= prey_eff*(Ans$ThresholdPreyFreq>0.99)+prey_peff*(Ans$ThresholdPreyFreq<=0.99)
-prey_thr = Ans$PreyW
 
-
-plot(t,pred_eff,type="n",col="red",lwd=3,xlab="",ylab="",ylim=c(0,max(c(pred_eff,pred_sthr))))
-#polygon(c(-1,-1,8,8),c(-100,100,100,-100),col=rgb(1,0,0,0.2),border=rgb(0,0,0,0))
-#polygon(c(17,17,25,25),c(-100,100,100,-100),col=rgb(1,0,0,0.2),border=rgb(0,0,0,0))
-#polygon(c(8,8,22,22),c(-100,100,100,-100),col=rgb(0,0,1,0.2),border=rgb(0,0,0,0))
-lines(t,pred_eff,type="b",col="red",lwd=3)
-lines(c(-100,100),c(pred_sthr,pred_sthr),col="red")
-lines(c(-100,100),c(pred_thr,pred_thr),lty='dotted',col="red")
-par(new=TRUE)
-plot(c(t,t),c(prey_eff,prey_reff),type="n",yaxt="n",col="skyblue",lwd=3,xlab="",ylab="",ylim=c(0,max(c(prey_eff,prey_reff))))
-lines(t,prey_eff,type="b",col="skyblue",lwd=3)
-lines(t,prey_reff,type="b",col="blue",lwd=3)
-lines(c(-100,100),c(prey_thr,prey_thr),lty='dotted',col="blue")
-axis(4)
 
 plot.sim_result(Ans,bquote(list(M==.(mass),'phi'==.(phi))),L)
