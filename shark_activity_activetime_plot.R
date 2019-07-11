@@ -47,6 +47,15 @@ l_shape = 5.0			#determines the sensitivity for small light
 mx = 1.0	#predation by other predators
 my = 0.5 #predation by sharks
 
+
+
+
+v0 = 1.5  #average swim speed (prey is always 1.0)
+my = 0.0  #predation by sharks
+FigName = "Fig4c"
+
+
+#start draw figure -------------------------
 sharktemp=calc.bodytemp(watertemp,mass) 
 U = u0 + uk*(watertemp-(wmax+wmin)/2)
 V = v0 + vk*(sharktemp-(wmax+wmin)/2)
@@ -71,47 +80,34 @@ pred_pfo = pred_pfo[c(23,24,1:24,1,2)]
 prey_epfo= prey_epfo[c(23,24,1:24,1,2)]
 prey_pfo= prey_pfo[c(23,24,1:24,1,2)]
 
-png("plot1.png",height=1200,width=1600)
-par(cex=3.0,mex=1.0,bg=rgb(0,0,0,0))
-plot(rep(dt,times=3),c(pred_pfo,prey_epfo,prey_pfo),type="n",col="red",xaxt="n",xlim=c(0,24),lwd=3,xlab="",ylab="")
+png(paste(FigName,"1.png",sep=""),height=1200,width=1600)
+par(cex=4.0,mex=1.0,bg=rgb(0,0,0,0))
+plot(rep(dt,times=3),c(pred_pfo,prey_epfo,prey_pfo),type="n",col="red",xaxt="n",xlim=c(0,24),ylim=c(-0.5,1.2),lwd=3,xlab="",ylab="")
 lines(c(-100,100),c(0,0))
 lines(c(-100,100),c(pred_sthr,pred_sthr-pred_thr),col="red",lwd=3)
-lines(dt,prey_epfo,type="l",col="skyblue",lwd=6,lty="dotted")
-lines(dt,prey_pfo,type="l",col="blue",lwd=6)
-lines(dt,pred_pfo,type="l",col="red",lwd=6)
+lines(dt,prey_epfo,type="l",col="skyblue",lwd=8,lty="dotted")
+lines(dt,prey_pfo,type="l",col="blue",lwd=8)
+lines(dt,pred_pfo,type="l",col="red",lwd=8)
 pred_pfo[pred_pfo<0]=0
 prey_pfo[prey_pfo<0]=0
 polygon(c(dt,rev(dt)),c(pred_pfo,rep(0,length=length(dt))),col=rgb(1,0,0,0.3),border=rgb(0,0,0,0))
 polygon(c(dt,rev(dt)),c(prey_pfo,rep(0,length=length(dt))),col=rgb(0,0,1,0.3),border=rgb(0,0,0,0))
 dev.off()
 
-#plot simulation results
-png("plot2.png",height=1200,width=1600)
-par(cex=3.0,mex=1.0,bg=rgb(0,0,0,0))
 
-Prey= Ans$Prey
-Predator = Ans$Predator
+#plot simulation results
+png(paste(FigName,"2.png",sep=""),height=1200,width=1600)
+par(cex=4.0,mex=1.0,bg=rgb(0,0,0,0))
+
+Prey= Ans$Prey[c(23,24,1:24,1,2)]
+Predator = Ans$Predator[c(23,24,1:24,1,2)]
+
 plot(0,0,type="n",
-	  #		  xlab="time (t)",ylab="foraging predator (red), prey (blue)",
 	  xlab="",ylab="",
-	  xlim=c(0,tnum),ylim=c(-0.02,1.02),       
-	  main=title
-)
-lines(t,Prey,col="blue",lwd=6)
-lines(t,Predator*0.99,col="red",lwd=6,lty="dashed")
+	  xlim=c(0,tnum),ylim=c(-0.02,1.02),xaxt="n")
+lines(dt,Prey,col="blue",lwd=8,lty="dashed")
+lines(dt,Predator*0.99,col="red",lwd=8)
+axis(1,at=c(0,6,12,18,24))
 dev.off()
 
-plot(t,pred_eff,type="n",col="red",lwd=3,xlab="",ylab="",ylim=c(0,max(c(pred_eff,pred_sthr))),xaxt="n")
-#polygon(c(-1,-1,8,8),c(-100,100,100,-100),col=rgb(1,0,0,0.2),border=rgb(0,0,0,0))
-#polygon(c(17,17,25,25),c(-100,100,100,-100),col=rgb(1,0,0,0.2),border=rgb(0,0,0,0))
-#polygon(c(8,8,22,22),c(-100,100,100,-100),col=rgb(0,0,1,0.2),border=rgb(0,0,0,0))
-lines(t,pred_eff,type="b",col="red",lwd=3)
-lines(c(-100,100),c(pred_sthr,pred_sthr),col="red")
-lines(c(-100,100),c(pred_thr,pred_thr),lty='dotted',col="red")
-par(new=TRUE)
-plot(c(t,t),c(prey_eff,prey_reff),type="n",xaxt="n",yaxt="n",col="skyblue",lwd=3,xlab="",ylab="",ylim=c(0,max(c(prey_eff,prey_reff))))
-lines(t,prey_eff,type="b",col="skyblue",lwd=3)
-lines(t,prey_reff,type="b",col="blue",lwd=3)
-lines(c(-100,100),c(prey_thr,prey_thr),lty='dotted',col="blue")
-axis(4)
 
