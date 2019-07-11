@@ -205,7 +205,7 @@ activetime6.get_category = function(Ans){
 #		$err_category: category which is not assigned by any colour for image. 
 activetime6.get_plotmode = function(category){
 	#colour for categories which is not assigned by any colour 
-	errclr = "grey"
+	errclr = "white"
 	
 	#remove information of peak numbers
 	majortime=(category)
@@ -215,65 +215,82 @@ activetime6.get_plotmode = function(category){
 	clr[category==category] = errclr #error
 	#add assignment of colours in the following lines
 	clr[majortime== 000000]  = "black"	#nothing
-	clr[majortime== 111111]  = "gray95"	#asynchronous
-	clr[majortime== 111110]  = "gray90"	#asynchronous
-	clr[majortime== 111101]  = "gray85"	#asynchronous
-	clr[majortime== 111011]  = "gray80"	#asynchronous
-	clr[majortime== 110111]  = "gray75"	#asynchronous
-	clr[majortime== 101111]  = "gray70"	#asynchronous
-	clr[majortime== 011111]  = "gray65"	#asynchronous
+	clr[majortime== 111111]  = "grey"	#asynchronous
+	clr[majortime== 111110]  = "grey"	#asynchronous
+	clr[majortime== 111101]  = "grey"	#asynchronous
+	clr[majortime== 111011]  = "grey"	#asynchronous
+	clr[majortime== 110111]  = "grey"	#asynchronous
+	clr[majortime== 101111]  = "grey"	#asynchronous
+	clr[majortime== 011111]  = "grey"	#asynchronous
+
 	# only last  periods	
-	clr[majortime== 000011]  = "blue"	#early nocturnal
-	clr[majortime== 000001]  = "blue"	#early nocturnal
+	clr[majortime== 000011]  = "blue"		#early nocturnal
+	clr[majortime== 000001]  = "blue"		#early nocturnal
 	# only first  periods	
 	clr[majortime== 100000]  = "darkviolet"#late nocturnal
 	clr[majortime== 110000]  = "darkviolet"#late nocturnal
 	# both firs and last periods
-	clr[majortime== 110011]  = "navyblue"	#long nocturnal
-	clr[majortime== 110001]  = "navyblue"	#long nocturnal
-	clr[majortime== 100011]  = "navyblue"	#long nocturnal
-	clr[majortime== 100001]  = "navyblue"	#long nocturnal
-	clr[majortime== 100111]  = "navyblue"	#long nocturnal
-	clr[majortime== 101011]  = "navyblue"	#long nocturnal
-	clr[majortime== 111001]  = "navyblue"	#long nocturnal
-	clr[majortime== 111000]  = "navyblue"	#late nocturnal
-	# only sunset
-	clr[majortime== 000010]  = "pink"	#sunset
-	clr[majortime== 010000]  = "deeppink"	#sunrise
-	clr[majortime== 011000]  = "deeppink"	#sunrise
-	# not in dark 
-	clr[majortime== 001110]  = "yellow"	#diurnal
-	clr[majortime== 011110]  = "yellow"	#diurnal
+	clr[majortime== 100001]  = "navyblue"	#nocturnal
+	clr[majortime== 100011]  = "navyblue"	#nocturnal
+	clr[majortime== 110001]  = "navyblue"	#nocturnal
+	clr[majortime== 110011]  = "navyblue"	#nocturnal
+
+	# only sunrise & morning
+	clr[majortime== 001000]  = "darkpink"	#early diurnal
+	clr[majortime== 010000]  = "darkpink"	#early diurnal
+	clr[majortime== 011000]  = "darkpink"	#early diurnal
+	# only afternoon & sunset
+	clr[majortime== 000100]  = "orange"	#late diurnal
+	clr[majortime== 000010]  = "orange"	#late diurnal
+	clr[majortime== 000110]  = "orange"	#late diurnal
+	# diurnal
 	clr[majortime== 001100]  = "yellow"	#diurnal
-	# only in pm but not dark
-	clr[majortime== 000110]  = "orange"	#afternoon
-	clr[majortime== 000100]  = "orange"	#afternoon
+	clr[majortime== 001110]  = "yellow"	#diurnal
+	clr[majortime== 011100]  = "yellow"	#diurnal
+	clr[majortime== 011110]  = "yellow"	#diurnal
+
+	# all am
+	clr[majortime== 111100]  = "skyblue"	#am
+	clr[majortime== 111000]  = "skyblue"	#am
+	clr[majortime== 111001]  = "skyblue"	#am
 	# all pm
 	clr[majortime== 001111]  = "plum"	#pm
 	clr[majortime== 000111]  = "plum"	#pm
-	# FOLLOWING ALL 2 PERIODS
-	
+	clr[majortime== 100111]  = "plum"	#pm
+
 	# 2nd + 5th, not after dark
-	clr[majortime== 010010]  = "gold2"	#crepuscular
-	clr[majortime== 011010]  = "gold3"	#crepuscular
-	clr[majortime== 010110]  = "gold4"	#crepuscular
-	clr[majortime== 110010]  = "goldenrod1"	#crepuscular
-	clr[majortime== 111010]  = "goldenrod2"	#crepuscular
-	clr[majortime== 110110]  = "goldenrod3"	#crepuscular
-	#clr[majortime== 101011]  = "goldenrod4"	#crepuscular
+	clr[majortime== 010010]  = "gold"	#crepuscular
+	clr[majortime== 011010]  = "gold"	#crepuscular
+	clr[majortime== 010110]  = "gold"	#crepuscular
+	clr[majortime== 001010]  = "gold"	#after sunrise crepuscular
+	
+	clr[majortime== 100010]  = "red"	#pre-sunrise crepuscular
+	clr[majortime== 100100]  = "red"	#pre-sunrise crepuscular
+	clr[majortime== 101000]  = "red"	#pre-sunrise crepuscular
+	clr[majortime== 100110]  = "red"	#pre-sunrise crepuscular
+	clr[majortime== 101100]  = "red"	#pre-sunrise crepuscular
+	clr[majortime== 101110]  = "red"	#pre-sunrise crepuscular
+	clr[majortime== 110010]  = "red"	#pre-sunrise crepuscular
+	clr[majortime== 110100]  = "red"	#pre-sunrise crepuscular
+	clr[majortime== 110110]  = "red"	#pre-sunrise crepuscular
+	clr[majortime== 111010]  = "red"	#pre-sunrise crepuscular
 	
 	# crepuscular + after dark
-	clr[majortime== 011011]  = "seagreen1"	#after sunset crepuscular
-	clr[majortime== 010011]  = "seagreen2"	#after sunset crepuscular
-	clr[majortime== 010111]  = "seagreen3"	#after sunset crepuscular
-	
-	# not 2nd + 5th
-	clr[majortime== 001010]  = "red1"	#after sunrise crepuscular
-	clr[majortime== 001011]  = "red2"	#after sunrise crepuscular
-	#	clr[majortime== 011001]  = "red3"	#after sunset crepuscular
-	#clr[majortime== 010001]  = "red4"	#after sunset crepuscular
-	
-	
+	clr[majortime== 010001]  = "green"	#after sunset crepuscular
+	clr[majortime== 001001]  = "green"	#after sunset crepuscular
+	clr[majortime== 000101]  = "green"	#after sunset crepuscular
+	clr[majortime== 011001]  = "green"	#after sunset crepuscular
+	clr[majortime== 001101]  = "green"	#after sunset crepuscular
+	clr[majortime== 011101]  = "green"	#after sunset crepuscular
+	clr[majortime== 010011]  = "green"	#after sunset crepuscular
+	clr[majortime== 001011]  = "green"	#after sunset crepuscular
+	clr[majortime== 011011]  = "green"	#after sunset crepuscular
+	clr[majortime== 010111]  = "green"	#after sunset crepuscular
+	clr[majortime== 101001]  = "green"	#after sunset crepuscular
+	clr[majortime== 100101]  = "green"	#after sunset crepuscular
+	clr[majortime== 101101]  = "green"	#after sunset crepuscular
+	clr[majortime== 110101]  = "green"	#after sunset crepuscular
+	clr[majortime== 101011]  = "green"	#after sunset crepuscular
 	
 	#definition of dot colours
 	dotclr = category
@@ -290,17 +307,17 @@ activetime6.get_plotmode = function(category){
 #	y.seq: sequence of yaxis
 #	plotmode: matrix of plotmode (return value of majortime.get_plotmode or majortime5.get_plotmode)
 #	dotcex: change the scale of dots 
-image.plotmode=function(x.seq,y.seq,plotmode,dotcex = 0.33,...){
+image.plotmode=function(x.seq,y.seq,plotmode,dotcex = 0.33,plot_legend=FALSE,...){
 	
-	colstrat=c("nothing","asynchronous","early_nocturnal","late_nocturnal","long_nocturnal","sunrise","sunset","diurnal","afternoon","pm","crepuscular","post-sunrise crepuscular","post-sunset crepuscular")
-	collabs=c("black","white","blue","darkviolet","navyblue","deeppink","pink","yellow","orange","plum","gold","red","seagreen2")
+	#colstrat=c("nothing","asynchronous","early_nocturnal","late_nocturnal","long_nocturnal","sunrise","sunset","diurnal","afternoon","pm","crepuscular","post-sunrise crepuscular","post-sunset crepuscular")
+	#collabs=c("black","grey","blue","darkviolet","navyblue","deeppink","pink","yellow","orange","plum","gold","red","seagreen2")
 	
 	fz = factor(plotmode$clr)
 	z = matrix(as.integer(fz),length(x.seq),length(y.seq))
 	clr = levels(fz)
 	clr[clr=="none"] = rgb(0,0,0,0)
 	image(x.seq,y.seq,z,col=levels(fz),...)
-	legend("topright",legend=colstrat, pch=16, col=collabs, cex=0.8, pt.cex = 2.2)
+	if(plot_legend)legend("topright",legend=colstrat, pch=16, col=collabs, cex=0.8, pt.cex = 2.2)
 	
 	fd = factor(plotmode$dotclr)
 	for(clr in levels(fd)){

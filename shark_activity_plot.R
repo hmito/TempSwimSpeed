@@ -48,7 +48,7 @@ plot.mass.phi.figures=function(nameIn,vk,beta,l0,mx,my,v0,mass,phi,watertemp,wma
   plotmode = activetime6.get_plotmode(no)
   png(paste("zone_",name,".png",sep=""),height=1600,width=1600)
   par(mfrow=c(1,1),cex=4.0,bg=rgb(0,0,0,0))
-  image.plotmode(x.ax,y.ax,plotmode,xlab="mass",ylab="phi")
+  image.plotmode(x.ax,y.ax,plotmode,xlab="mass",ylab="phi",plot_legend = FALSE)
   dev.off()
   #list of categorization error (grey colors) 
   plotmode$err_category
@@ -104,7 +104,7 @@ plot.my.v0.figures=function(nameIn,vk,beta,l0,mx,my,v0,mass,phi,watertemp,wmax,w
   plotmode = activetime6.get_plotmode(no)
   png(paste("zone_",name,".png",sep=""),height=1600,width=1600)
   par(mfrow=c(1,1),cex=4.0,bg=rgb(0,0,0,0))
-  image.plotmode(x.ax,y.ax,plotmode,xlab="v0",ylab="mY")
+  image.plotmode(x.ax,y.ax,plotmode,plot_legend=TRUE,xlab="v0",ylab="mY")
   dev.off()
   #list of categorization error (grey colors) 
   plotmode$err_category
