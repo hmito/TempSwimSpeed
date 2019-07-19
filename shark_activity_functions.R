@@ -118,8 +118,69 @@ plot.sim_result = function(Ans,title,L){
 		  main=title
 	)
 	lines(t,L,col="gray",lwd=3)
-	lines(t,Prey,col="blue",lwd=3)
-	lines(t,Predator*0.99,col="red",lwd=3,lty="dashed")
+	lines(t,Predator*0.99,col="red",lwd=3)
+	lines(t,Prey,col="blue",lwd=3,lty="dashed")
+}
+
+#plot and save figures of the simulation result with performance wave
+#	x:time
+#	y in upper panel:predation performance and foraging efficiency of predator and prey
+#	y in lower panel:foraging frequency of prey(blue) and predator(red))
+#parameters
+#	FigName: Figure name
+#	Ans: return value of tss_probforage_energygain_optimize function
+#	title: title of the figure
+#return
+#	none
+plot_and_save.sim_result_with_wave = function(FigName,V,U,L,alpha,beta,mx,my,mb,phi,omega,h){
+	Ans = tss_probforage_energygain_optimize_linear(V, U, alpha, rep(predcost,length=length(V)), L, my, phi, omega, beta, h, mb,mx)
+	pred_eff = L*(V-U)^beta
+	pred_thr = predcost/(1-predcost*h)
+	pred_sthr = predcost/phi/(1-predcost*h)
+	prey_eff= alpha*(1+omega*U)/((1-phi)*mx+my*pred_eff/(1+h*pred_eff))
+	prey_peff= alpha/(1-phi) * alpha*(1+omega*U)/(mx+my*(1-h*predcost)*pred_eff^2/(1+h*pred_eff)/((1-h*predcost)*pred_eff-predcost))
+	prey_reff= prey_eff*(Ans$ThresholdPreyFreq>0.99)+prey_peff*(Ans$ThresholdPreyFreq<=0.99)
+	prey_thr = Ans$PreyW
+	
+	
+	pred_pfo = pred_eff-pred_thr
+	prey_epfo = prey_eff - prey_thr
+	prey_pfo = prey_reff-prey_thr
+	
+	dt=(-1):26 - 0.5
+	pred_pfo = pred_pfo[c(23,24,1:24,1,2)]
+	prey_epfo= prey_epfo[c(23,24,1:24,1,2)]
+	prey_pfo= prey_pfo[c(23,24,1:24,1,2)]
+	
+	png(paste(FigName,"_upper.png",sep=""),height=1200,width=1600)
+	par(cex=4.0,mex=1.0,bg=rgb(0,0,0,0))
+	plot(rep(dt,times=3),c(pred_pfo,prey_epfo,prey_pfo),type="n",col="red",xaxt="n",xlim=c(0,24),ylim=c(-0.5,1.2),lwd=3,xlab="",ylab="")
+	lines(c(-100,100),c(0,0))
+	lines(c(-100,100),c(pred_sthr,pred_sthr-pred_thr),col="red",lwd=3)
+	lines(dt,prey_epfo,type="l",col="skyblue",lwd=8,lty="dotted")
+	lines(dt,prey_pfo,type="l",col="blue",lwd=8)
+	lines(dt,pred_pfo,type="l",col="red",lwd=8)
+	pred_pfo[pred_pfo<0]=0
+	prey_pfo[prey_pfo<0]=0
+	polygon(c(dt,rev(dt)),c(pred_pfo,rep(0,length=length(dt))),col=rgb(1,0,0,0.3),border=rgb(0,0,0,0))
+	polygon(c(dt,rev(dt)),c(prey_pfo,rep(0,length=length(dt))),col=rgb(0,0,1,0.3),border=rgb(0,0,0,0))
+	dev.off()
+	
+	
+	#plot simulation results
+	png(paste(FigName,"_lower.png",sep=""),height=1200,width=1600)
+	par(cex=4.0,mex=1.0,bg=rgb(0,0,0,0))
+	
+	Prey= Ans$Prey[c(23,24,1:24,1,2)]
+	Predator = Ans$Predator[c(23,24,1:24,1,2)]
+	
+	plot(0,0,type="n",
+		  xlab="",ylab="",
+		  xlim=c(0,tnum),ylim=c(-0.02,1.02),xaxt="n")
+	lines(dt,Predator*0.99,col="red",lwd=8)
+	lines(dt,Prey,col="blue",lwd=8,lty="dashed")
+	axis(1,at=c(0,6,12,18,24))
+	dev.off()
 }
 
 #plot figure summrizing assumption
@@ -262,7 +323,7 @@ activetime6.get_plotmode = function(category){
 	clr[majortime== 010010]  = "gold"	#crepuscular
 	clr[majortime== 011010]  = "gold"	#crepuscular
 	clr[majortime== 010110]  = "gold"	#crepuscular
-	clr[majortime== 001010]  = "gold"	#after sunrise crepuscular
+	clr[majortime== 001010]  = "gold"	#crepuscular
 	
 	clr[majortime== 100010]  = "red"	#pre-sunrise crepuscular
 	clr[majortime== 100100]  = "red"	#pre-sunrise crepuscular

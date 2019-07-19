@@ -203,8 +203,3 @@ for(my in c(0.0,0.5,1.0)){
   }
 }
 
-
-
-
-
-plot.sim_result(Ans,bquote(list(M==.(mass),'phi'==.(phi))),L)
