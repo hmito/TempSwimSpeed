@@ -15,6 +15,7 @@ hist.find_peaks = function(hist,min,max,n=101){
 	
 	threshold.no = min((1:n)[result==peak.num])
 	exist.seq = exist.mx[,threshold.no]
+	exist.seq = exist.mx[,threshold.no]
 	
 	peaks = data.frame("lower"=NA,"upper"=NA,"top"=NA,"freq"=NA)
 	
@@ -118,8 +119,8 @@ plot.sim_result = function(Ans,title,L){
 		  main=title
 	)
 	lines(t,L,col="gray",lwd=3)
-	lines(t,Predator*0.99,col="red",lwd=3)
 	lines(t,Prey,col="blue",lwd=3,lty="dashed")
+	lines(t,Predator*0.99,col="red",lwd=3)
 }
 
 #plot and save figures of the simulation result with performance wave
@@ -177,8 +178,8 @@ plot_and_save.sim_result_with_wave = function(FigName,V,U,L,alpha,beta,mx,my,mb,
 	plot(0,0,type="n",
 		  xlab="",ylab="",
 		  xlim=c(0,tnum),ylim=c(-0.02,1.02),xaxt="n")
-	lines(dt,Predator*0.99,col="red",lwd=8)
 	lines(dt,Prey,col="blue",lwd=8,lty="dashed")
+	lines(dt,Predator*0.99,col="red",lwd=8)
 	axis(1,at=c(0,6,12,18,24))
 	dev.off()
 }
