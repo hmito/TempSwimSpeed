@@ -43,7 +43,7 @@ hist.find_peaks = function(hist,min,max,n=101){
 	return(peaks[-1,])
 }
 
-#calculate bodytemp based on the body mass (effective body size on the watertemp dynamics)
+#calculate bodytemp based on the body mass by iterated numerical calculation (effective body size on the watertemp dynamics)
 #param
 #	watertemp: sequence of water temperature
 #	mass: effective body size in the context of heat balance
@@ -64,6 +64,20 @@ calc.bodytemp = function(watertemp, mass, error = 1e-10){
 	}
 	#fail to calculate stable bodytemp
 	return(rep(NA,length(watertemp)))
+}
+
+#analytically calc bodytemp based on the body mass (effective body size on the watertemp dynamics)
+#param
+#	t: sequence of time
+#	tw: time of peak (0-24)
+#	wmin: minimum water temperature
+#	wmax: maximum water temperature
+#	mass: effective body size in the context of heat balance
+#		e.g., basically, it is similar with the body size; i.e., small/large body fish is quickly/slowley heated
+#		e.g., thin body shape reduce effective body size because their surface area is relatively larger
+get.bodytemp = function(t, tw, wmin, wmax, mass){
+	V = 1 / sqrt(1 + (2*acos(-1)*mass/24)^2)
+	return((wmax+wmin)/2 + (wmax-wmin)/2*V*cos(2*acos(-1)*(t-tw)/24 - acos(V)))
 }
 
 #calculate mass from sharkradius & skinthickness

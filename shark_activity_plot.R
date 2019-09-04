@@ -11,7 +11,7 @@ plot.mass.phi.figures=function(nameIn,vk,beta,l0,mx,my,v0,mass,phi,watertemp,wma
     for(mass in x.seq){
       # cost over the day
 	    C_day = predcost * (1 + predCostMass*(mass^0.66)*(38-watertemp))
-      sharktemp=calc.bodytemp(watertemp,mass) 
+      sharktemp=get.bodytemp(t,t_w,wmin,wmax,mass) 
       U = u0 + uk*(watertemp-(wmax+wmin)/2)
       V = v0 + vk*(sharktemp-(wmax+wmin)/2)
       L = calc.light_effect(t,l_min, light_influence, twilight_coef)
@@ -34,7 +34,7 @@ plot.mass.phi.figures=function(nameIn,vk,beta,l0,mx,my,v0,mass,phi,watertemp,wma
       mass = x.ax[x]
       # cost over the day
       C_day = predcost * (1 + predCostMass*(mass^0.66)*(38-watertemp))
-      sharktemp=calc.bodytemp(watertemp,mass) 
+      sharktemp=get.bodytemp(t,t_w,wmin,wmax,mass) 
       U = u0 + uk*(watertemp-(wmax+wmin)/2)
       V = v0 + vk*(sharktemp-(wmax+wmin)/2)
       L = calc.light_effect(t,l_min, light_influence, twilight_coef)
@@ -67,7 +67,7 @@ plot.my.v0.figures=function(nameIn,vk,beta,l0,mx,my,v0,mass,phi,watertemp,wmax,w
     for(v0 in x.seq){
       # cost over the day
       C_day = predcost * (1 + predCostMass*(mass^0.66)*(38-watertemp))
-      sharktemp=calc.bodytemp(watertemp,mass) 
+      sharktemp=get.bodytemp(t,t_w,wmin,wmax,mass) 
       U = u0 + uk*(watertemp-(wmax+wmin)/2)
       V = v0 + vk*(sharktemp-(wmax+wmin)/2)
       L = calc.light_effect(t,l_min, light_influence, twilight_coef)
@@ -90,7 +90,7 @@ plot.my.v0.figures=function(nameIn,vk,beta,l0,mx,my,v0,mass,phi,watertemp,wmax,w
       v0 = x.ax[x]
       # cost over the day
       C_day = predcost * (1 + predCostMass*(mass^0.66)*(38-watertemp))
-      sharktemp=calc.bodytemp(watertemp,mass) 
+      sharktemp=get.bodytemp(t,t_w,wmin,wmax,mass) 
       U = u0 + uk*(watertemp-(wmax+wmin)/2)
       V = v0 + vk*(sharktemp-(wmax+wmin)/2)
       L = calc.light_effect(t,l_min, light_influence, twilight_coef)
@@ -159,7 +159,7 @@ twilight_coef=0.3;
 mx = 1.0	#predation by other predators
 my = 0.5 #predation by sharks
 
-sharktemp=calc.bodytemp(watertemp,mass) 
+sharktemp=get.bodytemp(t,t_w,wmin,wmax,mass) 
 U = u0 + uk*(watertemp-(wmax+wmin)/2)
 V = v0 + vk*(sharktemp-(wmax+wmin)/2)
 L = calc.light_effect(t,l_min, light_influence, twilight_coef)
