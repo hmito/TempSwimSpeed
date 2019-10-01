@@ -9,7 +9,7 @@ tnum = 24 # time of day
 t = 1:tnum-0.5
 
 # temperature of the water
-t_w=15
+t_w = 15
 wmin = 25
 wmax = 30
 watertemp = wmin+(wmax-wmin)*(cos(2*pi*(t-t_w)/length(t))+1)/2
@@ -31,7 +31,7 @@ phi = 0.1  	#probability of failing to hide in safe place
 h = 1.0    	#handling time
 
 #prey and predator speed
-mass = 5 #effective body size in the context of heat balance
+r = 0.3 #effective body size in the context of heat balance
 uk = 0.2 #influence of bodytemp
 v0 = 1.5  #average swim speed (prey is always 1.0)
 vk = 0.2 #influence of bodytemp
@@ -54,7 +54,7 @@ my = 0.5 #predation by sharks
 v0 = 1.5  #average swim speed (prey is always 1.0)
 my = 0.5  #predation by sharks
 
-sharktemp=calc.bodytemp(watertemp,mass) 
+sharktemp=calc.sharktemp(t,t_w,wmax,wmin,r) 
 U = u0 + uk*(watertemp-(wmax+wmin)/2)
 V = v0 + vk*(sharktemp-(wmax+wmin)/2)
 L = calc.light_effect(t,l0,l_shape,0.3)
@@ -66,7 +66,7 @@ plot_and_save.sim_result_with_wave("Fig4a",V,U,L,alpha,beta,mx,my,mb,phi,omega,h
 v0 = 1.5  #average swim speed (prey is always 1.0)
 my = 1.0  #predation by sharks
 
-sharktemp=calc.bodytemp(watertemp,mass) 
+sharktemp=calc.sharktemp(t,t_w,wmax,wmin,r) 
 U = u0 + uk*(watertemp-(wmax+wmin)/2)
 V = v0 + vk*(sharktemp-(wmax+wmin)/2)
 L = calc.light_effect(t,l0,l_shape,0.3)
@@ -78,7 +78,7 @@ plot_and_save.sim_result_with_wave("Fig4b",V,U,L,alpha,beta,mx,my,mb,phi,omega,h
 v0 = 1.5  #average swim speed (prey is always 1.0)
 my = 0.0  #predation by sharks
 
-sharktemp=calc.bodytemp(watertemp,mass) 
+sharktemp=calc.sharktemp(t,t_w,wmax,wmin,r)  
 U = u0 + uk*(watertemp-(wmax+wmin)/2)
 V = v0 + vk*(sharktemp-(wmax+wmin)/2)
 L = calc.light_effect(t,l0,l_shape,0.3)
@@ -89,7 +89,7 @@ plot_and_save.sim_result_with_wave("Fig4c",V,U,L,alpha,beta,mx,my,mb,phi,omega,h
 v0 = 1.75  #average swim speed (prey is always 1.0)
 my = 0.5  #predation by sharks
 
-sharktemp=calc.bodytemp(watertemp,mass) 
+sharktemp=calc.sharktemp(t,t_w,wmax,wmin,r) 
 U = u0 + uk*(watertemp-(wmax+wmin)/2)
 V = v0 + vk*(sharktemp-(wmax+wmin)/2)
 L = calc.light_effect(t,l0,l_shape,0.3)

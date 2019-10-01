@@ -43,48 +43,26 @@ hist.find_peaks = function(hist,min,max,n=101){
 	return(peaks[-1,])
 }
 
-#calculate bodytemp based on the body mass by iterated numerical calculation (effective body size on the watertemp dynamics)
-#param
-#	watertemp: sequence of water temperature
-#	mass: effective body size in the context of heat balance
-#		e.g., basically, it is similar with the body size; i.e., small/large body fish is quickly/slowley heated
-#		e.g., thin body shape reduce effective body size because their surface area is relatively larger
-calc.bodytemp = function(watertemp, mass, error = 1e-10){
-	bodytemp=rep(mean(watertemp),length(watertemp))
-	for (i in c(1:1000)) {
-		prev_bodytemp = bodytemp
-		for (j in 1:length(watertemp)) {
-			bodytemp[(j%%length(watertemp))+1] = bodytemp[j]+(watertemp[j]-bodytemp[j])/mass
-		}
-		
-		#return if the difference from previous iteration is smaller than error
-		if(sum(abs(bodytemp - prev_bodytemp))<error){
-			return(bodytemp)
-		}
-	}
-	#fail to calculate stable bodytemp
-	return(rep(NA,length(watertemp)))
+#calc water temperature
+#	t: sequence of time
+#	tw: time of peak (0-24)
+#	wmin: minimum water temperature
+#	wmax: maximum water temperature
+calc.watertemp = function(t,tw,wmin,wmax){
+	wmin+(wmax-wmin)*(cos(2*pi*(t-tw)/length(t))+1)/2
 }
 
-#analytically calc bodytemp based on the body mass (effective body size on the watertemp dynamics)
+#analytically calc bodytemp based on the body radius (effective body size on the watertemp dynamics)
 #param
 #	t: sequence of time
 #	tw: time of peak (0-24)
 #	wmin: minimum water temperature
 #	wmax: maximum water temperature
-#	mass: effective body size in the context of heat balance
-#		e.g., basically, it is similar with the body size; i.e., small/large body fish is quickly/slowley heated
-#		e.g., thin body shape reduce effective body size because their surface area is relatively larger
-get.bodytemp = function(t, tw, wmin, wmax, mass){
+#	r: radius of shark's body
+calc.sharktemp = function(t, tw, wmin, wmax, r){
+	mass = r^2/(6.36 * 1e-6*3600)
 	V = 1 / sqrt(1 + (2*acos(-1)*mass/24)^2)
 	return((wmax+wmin)/2 + (wmax-wmin)/2*V*cos(2*acos(-1)*(t-tw)/24 - acos(V)))
-}
-
-#calculate mass from sharkradius & skinthickness
-#	mathematically same with calc.shark.temp function if we use
-#  	calc.bodytemp(watertemp, calc.mass_for_bodytemp(sharkradius,skinthickness))
-calc.mass_for_bodytemp = function(sharkradius,skinthickness){
-	1/(2*0.6*0.031593/60/(sharkradius*log(sharkradius/(sharkradius-skinthickness))))
 }
 
 #calculate light effect with new definition
@@ -169,9 +147,9 @@ plot_and_save.sim_result_with_wave = function(FigName,V,U,L,alpha,beta,mx,my,mb,
 	
 	png(paste(FigName,"_upper.png",sep=""),height=1200,width=1600)
 	par(cex=4.0,mex=1.0,bg=rgb(0,0,0,0))
-	plot(rep(dt,times=3),c(pred_pfo,prey_epfo,prey_pfo),type="n",col="red",xaxt="n",xlim=c(0,24),ylim=c(-0.5,1.2),lwd=3,xlab="",ylab="")
+	plot(rep(dt,times=3),c(pred_pfo,prey_epfo,prey_pfo),type="n",col="red",xaxt="n",xlim=c(0,24),ylim=c(-0.5,2.2),lwd=3,xlab="",ylab="")
 	lines(c(-100,100),c(0,0))
-	lines(c(-100,100),c(pred_sthr,pred_sthr-pred_thr),col="red",lwd=3)
+	#lines(c(-100,100),c(pred_sthr,pred_sthr-pred_thr),col="red",lwd=3)
 	lines(dt,prey_epfo,type="l",col="skyblue",lwd=8,lty="dotted")
 	lines(dt,prey_pfo,type="l",col="blue",lwd=8)
 	lines(dt,pred_pfo,type="l",col="red",lwd=8)
@@ -196,53 +174,6 @@ plot_and_save.sim_result_with_wave = function(FigName,V,U,L,alpha,beta,mx,my,mb,
 	lines(dt,Predator*0.99,col="red",lwd=8)
 	axis(1,at=c(0,6,12,18,24))
 	dev.off()
-}
-
-#plot figure summrizing assumption
-#	water temp and shark temp in left panel
-#	V, U and L in right panel
-#parameters
-#	t: sequence of time
-#	watertemp: water temperature
-#	sharktemp: shark body temperature
-#	V: predator swim speed
-#	U: prey swim speed
-#	L: light effect
-#return
-#	none
-plot.assumption=function(t,watertemp,sharktemp,V,U){
-	# assumption figure
-	par(mfrow=c(1,2))
-	plot(t,watertemp,col="blue",pch=15, xlab="time (t)",ylab="temperature")
-	lines(t,watertemp,col="blue",lty=1)
-	#	text(7,25.0,bquote('w'['t']))
-	points(t,sharktemp,col="red",pch=16)
-	lines(t,sharktemp,col="red",lty=1)
-	points(t,calc.bodytemp(watertemp,1),col="purple",pch=17)
-	lines(t,calc.bodytemp(watertemp,1),col="purple",lty=1)
-	points(t,calc.bodytemp(watertemp,10),col="orange",pch=18)
-	lines(t,calc.bodytemp(watertemp,10),col="orange",lty=1)
-	#	text(4,28,bquote('s'['t']))
-	#	par(new =T)
-	#	plot(t,L,col="orange",pch=17, type = "p", axes = FALSE, ylab = "",ylim=c(0,max(L)),main="temperature")
-	lines(t,L,col="orange",lty=1)
-	#	text(5,0.25,bquote(lambda['t']))
-	axis(4)
-	
-	plot(t,V,type="n",xlim=c(0,tnum),ylim=c(min(V-U),max(c(V,U))),
-		  xlab="time (t)",ylab="burst speed",main="swim speed")
-	segments(-100,0,100,0)
-	points(t,V,col="red",pch=16)
-	lines(t,V,col="red",lty=1)
-	#	text(15,2.3,bquote('v'['t']))
-	points(t,U,col="blue",pch=15)
-	lines(t,U,col="blue",lty=1)
-	#	text(18,1.9,bquote('u'['t']))
-	points(t,V-U,col="purple",pch=17)
-	lines(t,V-U,col="purple",lty=1)
-	points(t,(V-U)^3.0,col="green",pch=18)
-	lines(t,(V-U)^3.0,col="green",lty=1)
-	#	text(17,0.9,bquote(list('v'['t'],'- u'['t'])))
 }
 
 #major-active-time based categorization with 5 time zone
