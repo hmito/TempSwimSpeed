@@ -4,7 +4,7 @@ source("shark_activity_functions.R")
 plot.r.phi.figures=function(nameIn,vk,beta,l0,mx,my,v0,r,phi,watertemp,wmax,wmin,u0,uk,alpha,predcost,predCostMass,L,omega,h,mb,l_min,light_influence,twilight_coef,t){
   x.seq = seq(0.05,1.00,length=4)
   y.seq = seq(0.02,0.18,length=5)
-  name = paste(nameIn,"_r-phi_vK",10*vk,"_uk",10*uk,"_B",beta,"_L",10*l0,"_mX",10*mx,"_mY",10*my,"_v0",v0*10,"_r",r,"_c",predCostMass*100,"_phi",phi*100,sep = "")
+  name = paste(nameIn,"_r-phi","_B",beta,"_uk",10*uk,"_vK",10*vk,"_L",10*l0,"_mX",10*mx,"_mY",10*my,"_v0",v0*10,"_r",r,"_c",predCostMass*100,"_phi",phi*100,sep = "")
   png(paste("examples_",name,".png",sep=""),height=2000,width=2000)
   par(mfrow=c(length(y.seq),length(x.seq)),cex=2.0,mex=0.3)
   for(phi in rev(y.seq)){
@@ -59,7 +59,7 @@ plot.r.phi.figures=function(nameIn,vk,beta,l0,mx,my,v0,r,phi,watertemp,wmax,wmin
 plot.my.v0.figures=function(nameIn,vk,beta,l0,mx,my,v0,r,phi,watertemp,wmax,wmin,u0,uk,alpha,predcost,predCostMass,L,omega,h,mb,l_min,light_influence,twilight_coef,t){
   x.seq = seq(1.0,2.0,length=5)
   y.seq = seq(0.0,2.0,length=5)
-  name = paste(nameIn,"_v0-my_vK",10*vk,"_uk",10*uk,"_B",beta,"_L",10*l0,"_mX",10*mx,"_mY",10*my,"_v0",v0*10,"_r",r,"_c",predCostMass*100,"_phi",phi*100,sep = "")
+  name = paste(nameIn,"_v0-my","_B",beta,"_uk",10*uk,"_vK",10*vk,"_L",10*l0,"_mX",10*mx,"_mY",10*my,"_v0",v0*10,"_r",r,"_c",predCostMass*100,"_phi",phi*100,sep = "")
   #plot multiple results of simulations with changing v0 and r
   png(paste("examples_",name,".png",sep=""),height=2000,width=2000)
   par(mfrow=c(length(y.seq),length(x.seq)),cex=2.0,mex=0.3)
@@ -164,41 +164,28 @@ U = u0 + uk*(watertemp-(wmax+wmin)/2)
 V = v0 + vk*(sharktemp-(wmax+wmin)/2)
 L = calc.light_effect(t,l_min, light_influence, twilight_coef)
 
-# FIGURE 3 & 4 basic result
-plot.my.v0.figures("fig3",vk,beta,l0,mx,my,v0,r,phi,watertemp,wmax,wmin,u0,uk,alpha,predcost,predCostMass,L,omega,h,mb,l_min,light_influence,twilight_coef,t)
-# FIGURE 6 endotherms vs. poikolotherms
-for (ii in c(0,1)){
-  for (jj in c(1,2,3)){
-    uk=ii*0.2
-    vk=(jj>2)*0.2
-    if (jj==2){
-      predcost=0.05
-      predCostMass=0.1
-    }else{
-      predcost=0.15
-      predCostMass=0.0
-    }
-    plot.r.phi.figures("fig6",vk,beta,l0,mx,my,v0,r,phi,watertemp,wmax,wmin,u0,uk,alpha,predcost,predCostMass,L,omega,h,mb,l_min,light_influence,twilight_coef,t)
-  }
-}
-# FIGURE 5 simple cases
-for(beta in c(0.0,1.0)){ # effect of speed
-  for(uk in c(0.0,0.2)){# effect of temp on speed
-    vk=uk
-    for(l0 in c(1.0,0.2)){# effect of light
-      for(mx in c(0.0,1.0)){ # other predators
-        plot.my.v0.figures("fig5",vk,beta,l0,mx,my,v0,r,phi,watertemp,wmax,wmin,u0,uk,alpha,predcost,predCostMass,L,omega,h,mb,l_min,light_influence,twilight_coef,t)
+# FIGURE 5 & A2  basuc result
+plot.my.v0.figures("fig5",vk,beta,l0,mx,my,v0,r,phi,watertemp,wmax,wmin,u0,uk,alpha,predcost,predCostMass,L,omega,h,mb,l_min,light_influence,twilight_coef,t)
+
+# FIGURE A3 simple models
+for(l0 in c(1.0,0.2)){# effect of light
+  for(mx in c(0.0,1.0)){ # other predators
+    for(beta in c(0.0,1.0)){ # effect of speed
+    for(uk in c(0.0,0.2)){# effect of temp on speed
+      vk=uk
+      plot.my.v0.figures("figA3",vk,beta,l0,mx,my,v0,r,phi,watertemp,wmax,wmin,u0,uk,alpha,predcost,predCostMass,L,omega,h,mb,l_min,light_influence,twilight_coef,t)
       }
     }
   }
 }
+
 beta=1.0
-# FIGURE 7 effects of finer details
-for(my in c(0.0,0.5,1.0)){
+# FIGURE 6 A4 A5 
+for(l0 in c(0.1,0.5,1.0)){
   for(mx in c(0.0,0.5,1.0,2.0)){
-    for(l0 in c(0.1,0.5,1.0)){
+    for(my in c(0.0,0.5,1.0)){
       #=== draw r-phi figures === 
-      plot.r.phi.figures("fig7",vk,beta,l0,mx,my,v0,r,phi,watertemp,wmax,wmin,u0,uk,alpha,predcost,predCostMass,L,omega,h,mb,l_min,light_influence,twilight_coef,t)
+      plot.r.phi.figures("fig6",vk,beta,l0,mx,my,v0,r,phi,watertemp,wmax,wmin,u0,uk,alpha,predcost,predCostMass,L,omega,h,mb,l_min,light_influence,twilight_coef,t)
     }
   }
 }
