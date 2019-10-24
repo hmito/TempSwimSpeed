@@ -243,9 +243,9 @@ activetime6.get_plotmode = function(category){
 	clr[majortime== 110011]  = "navyblue"	#nocturnal
 
 	# only sunrise & morning
-	clr[majortime== 001000]  = "darkpink"	#early diurnal
-	clr[majortime== 010000]  = "darkpink"	#early diurnal
-	clr[majortime== 011000]  = "darkpink"	#early diurnal
+	clr[majortime== 001000]  = "deeppink"	#early diurnal
+	clr[majortime== 010000]  = "deeppink"	#early diurnal
+	clr[majortime== 011000]  = "deeppink"	#early diurnal
 	# only afternoon & sunset
 	clr[majortime== 000100]  = "orange"	#late diurnal
 	clr[majortime== 000010]  = "orange"	#late diurnal
@@ -306,7 +306,15 @@ activetime6.get_plotmode = function(category){
 	#list of error category (not assigned by any colour )
 	err = sort(unique(as.vector(category[clr == errclr])))
 	
-	return(list(clr=clr,dotclr=dotclr, err_category=err))
+	
+	legend.str = c("nothing","asynchronous", "early nocturnal", "late nocturnal", "nocturnal", 
+						"early diurnal", "late diurnal", "diurnal", "am", "pm",
+						"crepuscular", "pre-sunrise crepuscular", "post-sunset crepuscular")
+	legend.clr = c("black","grey","blue","darkviolet","navyblue",
+						"deeppink", "orange", "yellow", "skyblue", "plum",
+						"gold","red","green")
+	
+	return(list(clr=clr,dotclr=dotclr, err_category=err, legend.str=legend.str,legend.clr =legend.clr))
 }
 
 #plot category with different colours following the definition in plotmode
@@ -315,16 +323,12 @@ activetime6.get_plotmode = function(category){
 #	plotmode: matrix of plotmode (return value of majortime.get_plotmode or majortime5.get_plotmode)
 #	dotcex: change the scale of dots 
 image.plotmode=function(x.seq,y.seq,plotmode,dotcex = 0.33,plot_legend=FALSE,...){
-	
-	#colstrat=c("nothing","asynchronous","early_nocturnal","late_nocturnal","long_nocturnal","sunrise","sunset","diurnal","afternoon","pm","crepuscular","post-sunrise crepuscular","post-sunset crepuscular")
-	#collabs=c("black","grey","blue","darkviolet","navyblue","deeppink","pink","yellow","orange","plum","gold","red","seagreen2")
-	
 	fz = factor(plotmode$clr)
 	z = matrix(as.integer(fz),length(x.seq),length(y.seq))
 	clr = levels(fz)
 	clr[clr=="none"] = rgb(0,0,0,0)
 	image(x.seq,y.seq,z,col=levels(fz),...)
-	if(plot_legend)legend("topright",legend=colstrat, pch=16, col=collabs, cex=0.8, pt.cex = 2.2)
+	if(plot_legend)legend("topright",legend=plotmode$legend.str, pch=16, col=plotmode$legend.clr, cex=0.8, pt.cex = 2.2)
 	
 	fd = factor(plotmode$dotclr)
 	for(clr in levels(fd)){
