@@ -125,8 +125,20 @@ plot.sim_result = function(Ans,title,L){
 #	title: title of the figure
 #return
 #	none
-plot_and_save.sim_result_with_wave = function(FigName,V,U,L,alpha,beta,mx,my,mb,phi,omega,h){
-	Ans = tss_probforage_energygain_optimize_linear(V, U, alpha, rep(predcost,length=length(V)), L, my, phi, omega, beta, h, mb,mx)
+plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h){
+	FigName = paste(nameIn,"_vb-my","_B",beta,"_uk",10*uk,"_vK",10*vk,"_lm",10*lm,"_mX",10*mx,"_mY",my,"_vb",vb,"_r",r,"_c",cost*100,"_phi",phi*100,sep = "")
+
+	# calculate time-depending parameters
+	watertemp=calc.watertemp(t,tw,wmin,wmax)
+	sharktemp=calc.sharktemp(t,tw,wmin,wmax,r) 
+	U = ub + uk*(watertemp-(wmax+wmin)/2)
+	V = vb + vk*(sharktemp-(wmax+wmin)/2)
+	K = rep(alpha,length=length(t))
+	C = rep(cost,length=length(t))
+	L = calc.light_effect(t, lm, lk, ld)
+	
+	#plot_and_save.sim_result_with_wave = function(FigName,V,U,L,alpha,beta,mx,my,mb,phi,omega,h){
+	Ans = tss_probforage_energygain_optimize_linear(V, U, K, C, L, my, phi, omega, beta, h, mb,mx)
 	pred_eff = L*(V-U)^beta
 	pred_thr = predcost/(1-predcost*h)
 	pred_sthr = predcost/phi/(1-predcost*h)
@@ -175,7 +187,7 @@ plot_and_save.sim_result_with_wave = function(FigName,V,U,L,alpha,beta,mx,my,mb,
 	axis(1,at=c(0,6,12,18,24))
 	dev.off()
 }
-
+	
 #major-active-time based categorization with 5 time zone
 #parameters
 #	Ans: return value of tss_probforage_energygain_optimize function
