@@ -33,36 +33,30 @@ my = 0.5 #predation by sharks
 
 #=== default parameter values ===
 r = 0.3  	#predator's body radius (meter)
-cost=0.15	#predation cost
+predcost=0.15	#predation cost
 beta = 1.0 	#predation efficiency
 h = 1.0    	#handling time
 
 # Fig4a  -------------------------
-vb = 1.5  #average swim speed (prey is always 1.0)
+vb = 1.0  #average swim speed (prey is always 1.0)
 my = 0.0  #predation by sharks
 
-plot_and_save.sim_result_with_wave("Fig4a", t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h)
+plot_and_save.sim_result_with_wave("Fig4a", t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, predcost, beta, h)
 
 # Fig4b  -------------------------
 vb = 1.5  #average swim speed (prey is always 1.0)
-my = 1.25  #predation by sharks
+my = 1.2  #predation by sharks
 
-plot_and_save.sim_result_with_wave("Fig4b", t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h)
+plot_and_save.sim_result_with_wave("Fig4b", t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, predcost, beta, h)
 
 # Fig4c  -------------------------
 vb = 1.5  #average swim speed (prey is always 1.0)
 my = 0.5  #predation by sharks
 
-plot_and_save.sim_result_with_wave("Fig4c", t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h)
+plot_and_save.sim_result_with_wave("Fig4c", t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, predcost, beta, h)
 
 # Fig4d  -------------------------
-vb = 1.7  #average swim speed (prey is always 1.0)
+vb = 2.0  #average swim speed (prey is always 1.0)
 my = 1.0  #predation by sharks
 
-plot_and_save.sim_result_with_wave("Fig4d", t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h)
-
-# Fig4e  -------------------------
-vb = 1.8  #average swim speed (prey is always 1.0)
-my = 1.5  #predation by sharks
-
-plot_and_save.sim_result_with_wave("Fig4e", t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h)
+plot_and_save.sim_result_with_wave("Fig4d", t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, predcost, beta, h)
