@@ -72,7 +72,6 @@ calc.sharktemp = function(t, tw, wmin, wmax, r){
 #param
 #	t: time sequence
 #	l_min: minimum predation rate
-#	l_max: maximum predation rate
 #	light_influence: strength of light influence on predation (how strong light is required for the reduction of predation rate)
 #	twilight_coef: influence of twilight. 0.3 seems good (see comments inside of the function)
 #return
@@ -89,8 +88,8 @@ calc.light_effect = function(t, l_min, light_influence, twilight_coef){
 	
 	lwave=(1-twilight_coef)*cos(2*pi*(t-12)/length(t)) + twilight_coef
 	lwave[lwave<0] = 0
-	alpha = log(1.0/l_min)
-	return(exp(-alpha*lwave^(1/light_influence)))
+	alpha = log(l_min)
+	return(exp(alpha*lwave^(1/light_influence)))
 }
 
 #plot figure of the simulation result
@@ -125,7 +124,7 @@ plot.sim_result = function(Ans,title,L){
 #	title: title of the figure
 #return
 #	none
-plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h){
+plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h, light_mode = TRUE){
 	FigName = paste(nameIn,"_vb-my","_B",beta,"_uk",10*uk,"_vK",10*vk,"_lm",10*lm,"_mX",10*mx,"_mY",my,"_vb",vb,"_r",r,"_c",cost*100,"_phi",phi*100,sep = "")
 
 	# calculate time-depending parameters
@@ -158,8 +157,15 @@ plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk,
 	prey_pfo= prey_pfo[c(23,24,1:24,1,2)]
 	
 	png(paste(FigName,"_upper.png",sep=""),height=1200,width=1600)
-	par(cex=4.0,mex=1.0,bg=rgb(0,0,0,0))
+	par(cex=5.0,mex=1.0,bg=rgb(0,0,0,0))
 	plot(rep(dt,times=3),c(pred_pfo,prey_epfo,prey_pfo),type="n",col="red",xaxt="n",xlim=c(0,24),ylim=c(-0.5,2.2),lwd=3,xlab="",ylab="")
+	if(light_mode){
+		polygon(c(-10,-10,100,100),c(-100,100,100,-100),col="white",border=rgb(0,0,0,0))
+		polygon(c(-10,-10,4,4),c(-100,100,100,-100),col="grey80",border=rgb(0,0,0,0))
+		polygon(c(4,4,8,8),c(-100,100,100,-100),col="grey90",border=rgb(0,0,0,0))
+		polygon(c(16,16,20,20),c(-100,100,100,-100),col="grey90",border=rgb(0,0,0,0))
+		polygon(c(20,20,100,100),c(-100,100,100,-100),col="grey80",border=rgb(0,0,0,0))
+	}
 	lines(c(-100,100),c(0,0))
 	#lines(c(-100,100),c(pred_sthr,pred_sthr-pred_thr),col="red",lwd=3)
 	lines(dt,prey_epfo,type="l",col="skyblue",lwd=8,lty="dotted")
@@ -174,7 +180,7 @@ plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk,
 	
 	#plot simulation results
 	png(paste(FigName,"_lower.png",sep=""),height=1200,width=1600)
-	par(cex=4.0,mex=1.0,bg=rgb(0,0,0,0))
+	par(cex=5.0,mex=1.0,bg=rgb(0,0,0,0))
 	
 	Prey= Ans$Prey[c(23,24,1:24,1,2)]
 	Predator = Ans$Predator[c(23,24,1:24,1,2)]
@@ -182,9 +188,16 @@ plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk,
 	plot(0,0,type="n",
 		  xlab="",ylab="",
 		  xlim=c(0,tnum),ylim=c(-0.02,1.02),xaxt="n")
+	if(light_mode){
+		polygon(c(-10,-10,100,100),c(-100,100,100,-100),col="white",border=rgb(0,0,0,0))
+		polygon(c(-10,-10,4,4),c(-100,100,100,-100),col="grey80",border=rgb(0,0,0,0))
+		polygon(c(4,4,8,8),c(-100,100,100,-100),col="grey90",border=rgb(0,0,0,0))
+		polygon(c(16,16,20,20),c(-100,100,100,-100),col="grey90",border=rgb(0,0,0,0))
+		polygon(c(20,20,100,100),c(-100,100,100,-100),col="grey80",border=rgb(0,0,0,0))
+	}
 	lines(dt,Prey,col="blue",lwd=8,lty="dashed")
 	lines(dt,Predator*0.99,col="red",lwd=8)
-	axis(1,at=c(0,6,12,18,24))
+	axis(1,at=c(0,4,8,12,16,20,24))
 	dev.off()
 }
 	
@@ -255,9 +268,9 @@ activetime6.get_plotmode = function(category){
 	clr[majortime== 110011]  = "navyblue"	#nocturnal
 
 	# only sunrise & morning
-	clr[majortime== 001000]  = "deeppink"	#early diurnal
-	clr[majortime== 010000]  = "deeppink"	#early diurnal
-	clr[majortime== 011000]  = "deeppink"	#early diurnal
+	clr[majortime== 001000]  = "red"	#early diurnal
+	clr[majortime== 010000]  = "red"	#early diurnal
+	clr[majortime== 011000]  = "red"	#early diurnal
 	# only afternoon & sunset
 	clr[majortime== 000100]  = "orange"	#late diurnal
 	clr[majortime== 000010]  = "orange"	#late diurnal
@@ -269,30 +282,30 @@ activetime6.get_plotmode = function(category){
 	clr[majortime== 011110]  = "yellow"	#diurnal
 
 	# all am
-	clr[majortime== 111100]  = "skyblue"	#am
-	clr[majortime== 111000]  = "skyblue"	#am
-	clr[majortime== 111001]  = "skyblue"	#am
+	clr[majortime== 111100]  = "plum"	#am
+	clr[majortime== 111000]  = "plum"	#am
+	clr[majortime== 111001]  = "plum"	#am
 	# all pm
-	clr[majortime== 001111]  = "plum"	#pm
-	clr[majortime== 000111]  = "plum"	#pm
-	clr[majortime== 100111]  = "plum"	#pm
+	clr[majortime== 001111]  = "skyblue"	#pm
+	clr[majortime== 000111]  = "skyblue"	#pm
+	clr[majortime== 100111]  = "skyblue"	#pm
 
 	# 2nd + 5th, not after dark
-	clr[majortime== 010010]  = "gold"	#crepuscular
-	clr[majortime== 011010]  = "gold"	#crepuscular
-	clr[majortime== 010110]  = "gold"	#crepuscular
-	clr[majortime== 001010]  = "gold"	#crepuscular
+	clr[majortime== 010010]  = "forestgreen"	#crepuscular
+	clr[majortime== 011010]  = "forestgreen"	#crepuscular
+	clr[majortime== 010110]  = "forestgreen"	#crepuscular
+	clr[majortime== 001010]  = "forestgreen"	#crepuscular
 	
-	clr[majortime== 100010]  = "red"	#pre-sunrise crepuscular
-	clr[majortime== 100100]  = "red"	#pre-sunrise crepuscular
-	clr[majortime== 101000]  = "red"	#pre-sunrise crepuscular
-	clr[majortime== 100110]  = "red"	#pre-sunrise crepuscular
-	clr[majortime== 101100]  = "red"	#pre-sunrise crepuscular
-	clr[majortime== 101110]  = "red"	#pre-sunrise crepuscular
-	clr[majortime== 110010]  = "red"	#pre-sunrise crepuscular
-	clr[majortime== 110100]  = "red"	#pre-sunrise crepuscular
-	clr[majortime== 110110]  = "red"	#pre-sunrise crepuscular
-	clr[majortime== 111010]  = "red"	#pre-sunrise crepuscular
+	clr[majortime== 100010]  = rgb(0.5,0.5,0)	#pre-sunrise crepuscular
+	clr[majortime== 100100]  = rgb(0.5,0.5,0)	#pre-sunrise crepuscular
+	clr[majortime== 101000]  = rgb(0.5,0.5,0)	#pre-sunrise crepuscular
+	clr[majortime== 100110]  = rgb(0.5,0.5,0)	#pre-sunrise crepuscular
+	clr[majortime== 101100]  = rgb(0.5,0.5,0)	#pre-sunrise crepuscular
+	clr[majortime== 101110]  = rgb(0.5,0.5,0)	#pre-sunrise crepuscular
+	clr[majortime== 110010]  = rgb(0.5,0.5,0)	#pre-sunrise crepuscular
+	clr[majortime== 110100]  = rgb(0.5,0.5,0)	#pre-sunrise crepuscular
+	clr[majortime== 110110]  = rgb(0.5,0.5,0)	#pre-sunrise crepuscular
+	clr[majortime== 111010]  = rgb(0.5,0.5,0)	#pre-sunrise crepuscular
 	
 	# crepuscular + after dark
 	clr[majortime== 010001]  = "green"	#after sunset crepuscular
