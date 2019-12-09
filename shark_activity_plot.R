@@ -4,7 +4,7 @@ source("shark_activity_functions.R")
 plot.r.phi.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h, plot_legend ){
   x.seq = seq(0.05,1.00,length=4)
   y.seq = seq(0.02,0.24,length=5)
-  name = paste(nameIn,"_r-phi","_B",beta,"_uk",10*uk,"_vk",10*vk,"_lm",10*lm,"_mX",10*mx,"_mY",10*my,"_vb",vb*10,"_omega",omega*10,"_c",cost*100,"_phi",100*phi,sep = "")
+  name = paste(nameIn,"_r-phi","_B",beta,"_uk",10*uk,"_vk",10*vk,"_lm",10*lm,"_mX",10*mx,"_mY",10*my,"_vb",vb*10,"_omega",omega*10,"_r","[x]","_c",cost*100,"_phi","[y]",sep = "")
   png(paste("examples_",name,".png",sep=""),height=2000,width=2000)
   par(mfrow=c(length(y.seq),length(x.seq)),cex=2.0,mex=0.3)
   for(phi in rev(y.seq)){
@@ -53,7 +53,7 @@ plot.r.phi.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, l
   plotmode = activetime6.get_plotmode(no)
   png(paste("zone_",name,".png",sep=""),height=1600,width=1600)
   par(mfrow=c(1,1),cex=5.0,bg=rgb(0,0,0,0))
-  image.plotmode(x.ax,y.ax,plotmode,xlab="r",ylab="phi",plot_legend = plot_legend)
+  image.plotmode(x.ax,y.ax,plotmode,xlab="",ylab="",plot_legend = plot_legend)
   dev.off()
   
   #list of categorization error (grey colors) 
@@ -65,7 +65,7 @@ plot.r.phi.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, l
 plot.vb.my.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h, plot_legend ){
   x.seq = seq(1.0,2.0,length=5)
   y.seq = seq(0.0,2.0,length=5)
-  name = paste(nameIn,"_vb-my","_B",beta,"_uk",10*uk,"_vK",10*vk,"_lm",10*lm,"_mX",10*mx,"_mY","[y]","_vb",vb*10,"_omega",omega*10,"_c",cost*100,"_phi",phi*100,sep = "")
+  name = paste(nameIn,"_vb-my","_B",beta,"_uk",10*uk,"_vK",10*vk,"_lm",10*lm,"_mX",10*mx,"_mY","[y]","_vb","[x]","_omega",omega*10,"_r",r,"_c",cost*100,"_phi",phi*100,sep = "")
 
   #plot multiple results of simulations with changing v0 and r
   png(paste("examples_",name,".png",sep=""),height=2000,width=2000)
@@ -117,7 +117,7 @@ plot.vb.my.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, l
   plotmode = activetime6.get_plotmode(no)
   png(paste("zone_",name,".png",sep=""),height=1600,width=1600)
   par(mfrow=c(1,1),cex=5.0,bg=rgb(0,0,0,0))
-  image.plotmode(x.ax,y.ax,plotmode,xlab="vb",ylab="mY",plot_legend = plot_legend)
+  image.plotmode(x.ax,y.ax,plotmode,xlab="",ylab="",plot_legend = plot_legend)
   dev.off()
   
   #list of categorization error (grey colors) 
@@ -145,7 +145,7 @@ vk = 0.2 #influence of bodytemp
 
 #light effects
 lm = 0.5		#predation efficiency at noon
-lk = 0.2		#determines the sensitivity for small light
+lk = 2.0		#determines the sensitivity for small light
 ld = 0.3		#duration of twilight
 
 #mortality rate of prey by predation
@@ -164,25 +164,54 @@ h = 1.0    	#handling time
 
 
 # FIGURE 4 basic zoneplot
+plot_legend = FALSE#TRUE
 plot.vb.my.figures("fig4", t, tw, wmin, wmax, ub, uk, vb, vk, 
-                   lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = TRUE)
+                   lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
 	
 # FIGURE A2 simple models
-for(lm in c(0.0,4.0)){# effect of light
-  for(mx in c(0.0,1.0)){ # other predators
-    for(beta in c(0.0,1.0)){ # effect of speed
-    for(uk in c(0.0,0.2)){# effect of temp on speed
-      vk=uk
-      plot_legend = FALSE
-      if (lm==0.0 && mx==0.0 && beta==0.0 && uk==0.0) { 
-        plot_legend = TRUE 
-      }
-      plot.vb.my.figures("figA2", t, tw, wmin, wmax, ub, uk, vb, vk, 
-                         lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend )
-      }
-    }
-  }
+lm.seq = c(0.1,0.1,0.5,0.5,1.0,1.0)
+mx.seq = c(0.0,1.0,0.0,1.0,0.0,1.0)
+ukvk.seq = c(0.0,0.0,0.2)
+beta.seq = c(0.0,1.0,1.0)
+for(iy in 1:length(lm.seq)){
+	for(ix in 1:length(ukvk.seq)){
+		plot.vb.my.figures(sprintf("figA2[%d,%d]",ix,iy), t, tw, wmin, wmax, 
+								 ub, ukvk.seq[ix], vb, ukvk.seq[ix], 
+								 lm.seq[iy], lk, ld, alpha, omega, phi, 
+								 mb, mx.seq[iy], my, r, cost, beta, h,plot_legend=FALSE )
+	}
 }
+
+# FIGUEW 5 phi-r plot
+plot.r.phi.figures("fig5_vb10_my05",t, tw, wmin, wmax, ub, uk, 1.0, vk, 
+						 lm, lk, ld, alpha, omega, phi, mb, mx, 0.5, r, cost, beta, h,plot_legend = plot_legend)
+plot.r.phi.figures("fig5_vb10_my10",t, tw, wmin, wmax, ub, uk, 1.0, vk, 
+						 lm, lk, ld, alpha, omega, phi, mb, mx, 1.0, r, cost, beta, h,plot_legend = plot_legend)
+plot.r.phi.figures("fig5_vb10_my15",t, tw, wmin, wmax, ub, uk, 1.0, vk, 
+						 lm, lk, ld, alpha, omega, phi, mb, mx, 1.5, r, cost, beta, h,plot_legend = plot_legend)
+plot.r.phi.figures("fig5_vb15_my02",t, tw, wmin, wmax, ub, uk, 1.5, vk, 
+						 lm, lk, ld, alpha, omega, phi, mb, mx, 0.2, r, cost, beta, h,plot_legend = plot_legend)
+plot.r.phi.figures("fig5_vb15_my05",t, tw, wmin, wmax, ub, uk, 1.5, vk, 
+						 lm, lk, ld, alpha, omega, phi, mb, mx, 0.5, r, cost, beta, h,plot_legend = plot_legend)
+plot.r.phi.figures("fig5_vb15_my10",t, tw, wmin, wmax, ub, uk, 1.5, vk, 
+						 lm, lk, ld, alpha, omega, phi, mb, mx, 1.0, r, cost, beta, h,plot_legend = plot_legend)
+plot.r.phi.figures("fig5_vb15_my15",t, tw, wmin, wmax, ub, uk, 1.5, vk, 
+						 lm, lk, ld, alpha, omega, phi, mb, mx, 1.5, r, cost, beta, h,plot_legend = plot_legend)
+plot.r.phi.figures("fig5_vb20_my15",t, tw, wmin, wmax, ub, uk, 2.0, vk, 
+						 lm, lk, ld, alpha, omega, phi, mb, mx, 1.5, r, cost, beta, h,plot_legend = plot_legend)
+plot.r.phi.figures("fig5_vb20_my10",t, tw, wmin, wmax, ub, uk, 2.0, vk, 
+						 lm, lk, ld, alpha, omega, phi, mb, mx, 1.0, r, cost, beta, h,plot_legend = plot_legend)
+plot.r.phi.figures("fig5_vb20_my05",t, tw, wmin, wmax, ub, uk, 2.0, vk, 
+						 lm, lk, ld, alpha, omega, phi, mb, mx, 0.5, r, cost, beta, h,plot_legend = plot_legend)
+plot.r.phi.figures("fig5c",t, tw, wmin, wmax, ub, uk, vb, vk, 
+						 lm, lk, ld, alpha, omega, phi, mb, mx, 1, r, cost, beta, h,plot_legend = plot_legend)
+plot.r.phi.figures("fig5d",t, tw, wmin, wmax, ub, uk, vb, vk, 
+						 lm, lk, ld, alpha, 0, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
+plot.r.phi.figures("fig5e",t, tw, wmin, wmax, ub, uk, vb, vk, 
+						 0.1, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
+plot.r.phi.figures("fig5f",t, tw, wmin, wmax, ub, uk, vb, vk, 
+						 1.0, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
+
 
 beta=1.0
 mx = 1.0
@@ -193,7 +222,7 @@ for(lm in c(4.0,1.0,0.0)){
       for(my in c(0.0,1.0,2.0)){
         plot_legend = FALSE
         if (mx==0.0 & my==0.0) { 
-          plot_legend = TRUE 
+          #plot_legend = TRUE 
         }
       	plot.r.phi.figures("figA3",t, tw, wmin, wmax, ub, uk, vb, vk, 
       	                   lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend )
