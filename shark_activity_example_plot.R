@@ -20,7 +20,7 @@ vk = 0.2 #influence of bodytemp
 
 #light effects
 lm = 0.5		#predation efficiency at noon
-lk = 0.2		#determines the sensitivity for small light
+lk = 2		#determines the sensitivity for small light
 ld = 0.3		#duration of twilight
 
 #mortality rate of prey by predation
@@ -41,22 +41,22 @@ h = 1.0    	#handling time
 vb = 1.0  #average swim speed (prey is always 1.0)
 my = 0.0  #predation by sharks
 
-plot_and_save.sim_result_with_wave("Fig4a", t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, predcost, beta, h)
+plot_and_save.sim_result_with_wave("Fig3a", t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, predcost, beta, h)
 
 # Fig4b  -------------------------
-vb = 1.5  #average swim speed (prey is always 1.0)
-my = 1.2  #predation by sharks
+vb = 2.0  #average swim speed (prey is always 1.0)
+my = 1.5  #predation by sharks
 
-plot_and_save.sim_result_with_wave("Fig4b", t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, predcost, beta, h)
+plot_and_save.sim_result_with_wave("Fig3b", t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, predcost, beta, h)
 
 # Fig4c  -------------------------
 vb = 1.5  #average swim speed (prey is always 1.0)
 my = 0.5  #predation by sharks
 
-plot_and_save.sim_result_with_wave("Fig4c", t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, predcost, beta, h)
+plot_and_save.sim_result_with_wave("Fig3c", t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, predcost, beta, h)
 
 # Fig4d  -------------------------
-vb = 2.0  #average swim speed (prey is always 1.0)
-my = 1.0  #predation by sharks
+vb = 1.5  #average swim speed (prey is always 1.0)
+my = 0.2  #predation by sharks
 
-plot_and_save.sim_result_with_wave("Fig4d", t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, predcost, beta, h)
+plot_and_save.sim_result_with_wave("Fig3d", t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, predcost, beta, h)
