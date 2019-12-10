@@ -1,92 +1,95 @@
 #load library
 source("shark_activity_functions.R")
 
-plot.r.phi.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h, plot_legend ){
-  x.seq = seq(0.05,1.00,length=4)
-  y.seq = seq(0.02,0.24,length=5)
-  name = paste(nameIn,"_r-phi","_B",beta,"_uk",10*uk,"_vk",10*vk,"_lm",10*lm,"_mX",10*mx,"_mY",10*my,"_vb",vb*10,"_omega",omega*10,"_r","[x]","_c",cost*100,"_phi","[y]",sep = "")
-  png(paste("examples_",name,".png",sep=""),height=2000,width=2000)
-  par(mfrow=c(length(y.seq),length(x.seq)),cex=2.0,mex=0.3)
-  for(phi in rev(y.seq)){
-    for(r in x.seq){
-      # calculate time-depending parameters 
-      watertemp=calc.watertemp(t,tw,wmin,wmax)
-      sharktemp=calc.sharktemp(t,tw,wmin,wmax,r) 
-      U = ub + uk*(watertemp-(wmax+wmin)/2)
-      V = vb + vk*(sharktemp-(wmax+wmin)/2)
-      K = rep(alpha,length=length(t))
-	    C = rep(cost,length=length(t))
-      L = calc.light_effect(t, lm, lk, ld)
-      #run simulation
-      Ans = tss_probforage_energygain_optimize_linear(V, U, K, C, L, my, phi, omega, beta, h, mb,mx)
-      #plot simulation results
-      plot.sim_result(Ans,bquote(list("r"==.(r),'phi'==.(phi))),L)
-    }
-  }
-  dev.off()
-
-  
-  #plot categories of simulation results with changing v0 and phi
-  grid = 101
-  x.ax = seq(0.01,1.00,length=grid)
-  y.ax = seq(0.0,0.25,length=grid)
-  no = matrix(0,grid,grid)
-  for(y in 1:length(y.ax)){
-    phi = y.ax[y]
-    for(x in 1:length(x.ax)){
-      r = x.ax[x]
-      # calculate time-depending parameters 
-      watertemp=calc.watertemp(t,tw,wmin,wmax)
-      sharktemp=calc.sharktemp(t,tw,wmin,wmax,r) 
-      U = ub + uk*(watertemp-(wmax+wmin)/2)
-      V = vb + vk*(sharktemp-(wmax+wmin)/2)
-      K = rep(alpha,length=length(t))
-	    C = rep(cost,length=length(t))
-      L = calc.light_effect(t, lm, lk, ld)
-      #run simulation
-      Ans = tss_probforage_energygain_optimize_linear(V, U, K, C, L, my, phi, omega, beta, h, mb,mx)
-      #calculate category
-      no[x,y] = activetime6.get_category(Ans)
-    }
-  }
-  #plot category image
-  plotmode = activetime6.get_plotmode(no)
-  png(paste("zone_",name,".png",sep=""),height=1600,width=1600)
-  par(mfrow=c(1,1),cex=5.0,bg=rgb(0,0,0,0))
-  image.plotmode(x.ax,y.ax,plotmode,xlab="",ylab="",plot_legend = plot_legend)
-  dev.off()
-  
-  #list of categorization error (grey colors) 
-  plotmode$err_category
-  #list of categorization error (grey colors) by ignoring the number of peaks
-  sort(unique((plotmode$err_category)%%100))
+plot.r.phi.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h, plot_legend, plot_example=FALSE){
+	x.seq = seq(0.05,1.00,length=4)
+	y.seq = seq(0.02,0.24,length=5)
+	name = paste(nameIn,"_r-phi","_B",beta,"_uk",10*uk,"_vk",10*vk,"_lm",10*lm,"_mX",10*mx,"_mY",10*my,"_vb",vb*10,"_omega",omega*10,"_r","[x]","_c",cost*100,"_phi","[y]",sep = "")
+	if(plot_example){
+		png(paste("examples_",name,".png",sep=""),height=2000,width=2000)
+		par(mfrow=c(length(y.seq),length(x.seq)),cex=2.0,mex=0.3)
+		for(phi in rev(y.seq)){
+			for(r in x.seq){
+				# calculate time-depending parameters 
+				watertemp=calc.watertemp(t,tw,wmin,wmax)
+				sharktemp=calc.sharktemp(t,tw,wmin,wmax,r) 
+				U = ub + uk*(watertemp-(wmax+wmin)/2)
+				V = vb + vk*(sharktemp-(wmax+wmin)/2)
+				K = rep(alpha,length=length(t))
+				C = rep(cost,length=length(t))
+				L = calc.light_effect(t, lm, lk, ld)
+				#run simulation
+				Ans = tss_probforage_energygain_optimize_linear(V, U, K, C, L, my, phi, omega, beta, h, mb,mx)
+				#plot simulation results
+				plot.sim_result(Ans,bquote(list("r"==.(r),'phi'==.(phi))),L)
+			}
+		}
+		dev.off()
+	}
+	
+	#plot categories of simulation results with changing v0 and phi
+	grid = 101
+	x.ax = seq(0.01,1.00,length=grid)
+	y.ax = seq(0.0,0.25,length=grid)
+	no = matrix(0,grid,grid)
+	for(y in 1:length(y.ax)){
+		phi = y.ax[y]
+		for(x in 1:length(x.ax)){
+			r = x.ax[x]
+			# calculate time-depending parameters 
+			watertemp=calc.watertemp(t,tw,wmin,wmax)
+			sharktemp=calc.sharktemp(t,tw,wmin,wmax,r) 
+			U = ub + uk*(watertemp-(wmax+wmin)/2)
+			V = vb + vk*(sharktemp-(wmax+wmin)/2)
+			K = rep(alpha,length=length(t))
+			C = rep(cost,length=length(t))
+			L = calc.light_effect(t, lm, lk, ld)
+			#run simulation
+			Ans = tss_probforage_energygain_optimize_linear(V, U, K, C, L, my, phi, omega, beta, h, mb,mx)
+			#calculate category
+			no[x,y] = activetime6.get_category(Ans)
+		}
+	}
+	#plot category image
+	plotmode = activetime6.get_plotmode(no)
+	png(paste("zone_",name,".png",sep=""),height=1600,width=1600)
+	par(mfrow=c(1,1),cex=5.0,bg=rgb(0,0,0,0))
+	image.plotmode(x.ax,y.ax,plotmode,xlab="",ylab="",plot_legend = plot_legend)
+	dev.off()
+	
+	#list of categorization error (grey colors) 
+	plotmode$err_category
+	#list of categorization error (grey colors) by ignoring the number of peaks
+	sort(unique((plotmode$err_category)%%100))
 }
 
-plot.vb.my.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h, plot_legend ){
-  x.seq = seq(1.0,2.0,length=5)
-  y.seq = seq(0.0,2.0,length=5)
-  name = paste(nameIn,"_vb-my","_B",beta,"_uk",10*uk,"_vK",10*vk,"_lm",10*lm,"_mX",10*mx,"_mY","[y]","_vb","[x]","_omega",omega*10,"_r",r,"_c",cost*100,"_phi",phi*100,sep = "")
-
-  #plot multiple results of simulations with changing v0 and r
-  png(paste("examples_",name,".png",sep=""),height=2000,width=2000)
-  par(mfrow=c(length(y.seq),length(x.seq)),cex=2.0,mex=0.3)
-  for(my in rev(y.seq)){
-    for(vb in x.seq){
-    	# calculate time-depending parameters
-      watertemp=calc.watertemp(t,tw,wmin,wmax)
-      sharktemp=calc.sharktemp(t,tw,wmin,wmax,r) 
-      U = ub + uk*(watertemp-(wmax+wmin)/2)
-      V = vb + vk*(sharktemp-(wmax+wmin)/2)
-      K = rep(alpha,length=length(t))
-	   C = rep(cost,length=length(t))
-      L = calc.light_effect(t, lm, lk, ld)
-      #run simulation
-      Ans = tss_probforage_energygain_optimize_linear(V, U, K, C, L, my, phi, omega, beta, h, mb,mx)
-      #plot simulation results
-      plot.sim_result(Ans,bquote(list('v'['b']==.(vb),'m'['y']==.(my))),L)
-    }
-  }
-  dev.off()
+plot.vb.my.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h, plot_legend, plot_example=FALSE){
+	x.seq = seq(1.0,2.0,length=5)
+	y.seq = seq(0.0,2.0,length=5)
+	name = paste(nameIn,"_vb-my","_B",beta,"_uk",10*uk,"_vK",10*vk,"_lm",10*lm,"_mX",10*mx,"_mY","[y]","_vb","[x]","_omega",omega*10,"_r",r,"_c",cost*100,"_phi",phi*100,sep = "")
+	
+	#plot multiple results of simulations with changing v0 and r
+	if(plot_example){
+		png(paste("examples_",name,".png",sep=""),height=2000,width=2000)
+		par(mfrow=c(length(y.seq),length(x.seq)),cex=2.0,mex=0.3)
+		for(my in rev(y.seq)){
+			for(vb in x.seq){
+				# calculate time-depending parameters
+				watertemp=calc.watertemp(t,tw,wmin,wmax)
+				sharktemp=calc.sharktemp(t,tw,wmin,wmax,r) 
+				U = ub + uk*(watertemp-(wmax+wmin)/2)
+				V = vb + vk*(sharktemp-(wmax+wmin)/2)
+				K = rep(alpha,length=length(t))
+				C = rep(cost,length=length(t))
+				L = calc.light_effect(t, lm, lk, ld)
+				#run simulation
+				Ans = tss_probforage_energygain_optimize_linear(V, U, K, C, L, my, phi, omega, beta, h, mb,mx)
+				#plot simulation results
+				plot.sim_result(Ans,bquote(list('v'['b']==.(vb),'m'['y']==.(my))),L)
+			}
+		}
+		dev.off()
+	}
 
   
   #plot categories of simulation results with changing v0 and r
@@ -124,6 +127,136 @@ plot.vb.my.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, l
   plotmode$err_category
   #list of categorization error (grey colors) by ignoring the number of peaks
   sort(unique((plotmode$err_category)%%100))
+}
+
+plot.vb.r.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h, plot_legend, plot_example=FALSE){
+	y.seq = seq(0.05,1.00,length=4)
+	x.seq = seq(1.0,2.0,length=5)
+	
+	name = paste(nameIn,"_vb-r","_B",beta,"_uk",10*uk,"_vk",10*vk,"_lm",10*lm,"_mX",10*mx,"_mY",10*my,"_vb","[x]","_omega",omega*10,"_r","[y]","_c",cost*100,"_phi",phi,sep = "")
+	if(plot_example){
+		png(paste("examples_",name,".png",sep=""),height=2000,width=2000)
+		par(mfrow=c(length(y.seq),length(x.seq)),cex=2.0,mex=0.3)
+		for(r in rev(y.seq)){
+			for(vb in x.seq){
+				# calculate time-depending parameters 
+				watertemp=calc.watertemp(t,tw,wmin,wmax)
+				sharktemp=calc.sharktemp(t,tw,wmin,wmax,r) 
+				U = ub + uk*(watertemp-(wmax+wmin)/2)
+				V = vb + vk*(sharktemp-(wmax+wmin)/2)
+				K = rep(alpha,length=length(t))
+				C = rep(cost,length=length(t))
+				L = calc.light_effect(t, lm, lk, ld)
+				#run simulation
+				Ans = tss_probforage_energygain_optimize_linear(V, U, K, C, L, my, phi, omega, beta, h, mb,mx)
+				#plot simulation results
+				plot.sim_result(Ans,bquote(list("r"==.(r),'phi'==.(phi))),L)
+			}
+		}
+		dev.off()
+	}
+	
+	
+	#plot categories of simulation results with changing v0 and phi
+	grid = 101
+	y.ax = seq(0.01,1.00,length=grid)
+	x.ax = seq(1.0,2.5,length=grid)
+	no = matrix(0,grid,grid)
+	for(y in 1:length(y.ax)){
+		r = y.ax[y]
+		for(x in 1:length(x.ax)){
+			vb = x.ax[x]
+			# calculate time-depending parameters 
+			watertemp=calc.watertemp(t,tw,wmin,wmax)
+			sharktemp=calc.sharktemp(t,tw,wmin,wmax,r) 
+			U = ub + uk*(watertemp-(wmax+wmin)/2)
+			V = vb + vk*(sharktemp-(wmax+wmin)/2)
+			K = rep(alpha,length=length(t))
+			C = rep(cost,length=length(t))
+			L = calc.light_effect(t, lm, lk, ld)
+			#run simulation
+			Ans = tss_probforage_energygain_optimize_linear(V, U, K, C, L, my, phi, omega, beta, h, mb,mx)
+			#calculate category
+			no[x,y] = activetime6.get_category(Ans)
+		}
+	}
+	#plot category image
+	plotmode = activetime6.get_plotmode(no)
+	png(paste("zone_",name,".png",sep=""),height=1600,width=1600)
+	par(mfrow=c(1,1),cex=5.0,bg=rgb(0,0,0,0))
+	image.plotmode(x.ax,y.ax,plotmode,xlab="",ylab="",plot_legend = plot_legend)
+	dev.off()
+	
+	#list of categorization error (grey colors) 
+	plotmode$err_category
+	#list of categorization error (grey colors) by ignoring the number of peaks
+	sort(unique((plotmode$err_category)%%100))
+}
+
+plot.my.phi.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h, plot_legend, plot_example=FALSE){
+	x.seq = seq(0.0,2.0,length=5)
+	y.seq = seq(0.02,0.24,length=5)
+	name = paste(nameIn,"_my-phi","_B",beta,"_uk",10*uk,"_vK",10*vk,"_lm",10*lm,"_mX",10*mx,"_mY","[x]","_vb",vb,"_omega",omega*10,"_r",r,"_c",cost*100,"_phi","[y]",sep = "")
+	
+	#plot multiple results of simulations with changing v0 and r
+	if(plot_example){
+		png(paste("examples_",name,".png",sep=""),height=2000,width=2000)
+		par(mfrow=c(length(y.seq),length(x.seq)),cex=2.0,mex=0.3)
+		for(phi in rev(y.seq)){
+			for(my in x.seq){
+				# calculate time-depending parameters
+				watertemp=calc.watertemp(t,tw,wmin,wmax)
+				sharktemp=calc.sharktemp(t,tw,wmin,wmax,r) 
+				U = ub + uk*(watertemp-(wmax+wmin)/2)
+				V = vb + vk*(sharktemp-(wmax+wmin)/2)
+				K = rep(alpha,length=length(t))
+				C = rep(cost,length=length(t))
+				L = calc.light_effect(t, lm, lk, ld)
+				#run simulation
+				Ans = tss_probforage_energygain_optimize_linear(V, U, K, C, L, my, phi, omega, beta, h, mb,mx)
+				#plot simulation results
+				plot.sim_result(Ans,bquote(list('v'['b']==.(vb),'m'['y']==.(my))),L)
+			}
+		}
+		dev.off()
+	}
+	
+	
+	#plot categories of simulation results with changing v0 and r
+	grid = 101
+	x.ax = seq(0.0,2.0,length=grid)
+	y.ax = seq(0.0,0.25,length=grid)
+	no = matrix(0,grid,grid)
+	for(y in 1:length(y.ax)){
+		phi = y.ax[y]
+		for(x in 1:length(x.ax)){
+			my = x.ax[x]
+			
+			# calculate time-depending parameters       
+			watertemp=calc.watertemp(t,tw,wmin,wmax)
+			sharktemp=calc.sharktemp(t,tw,wmin,wmax,r) 
+			U = ub + uk*(watertemp-(wmax+wmin)/2)
+			V = vb + vk*(sharktemp-(wmax+wmin)/2)
+			K = rep(alpha,length=length(t))
+			C = rep(cost,length=length(t))
+			L = calc.light_effect(t, lm, lk, ld)
+			#run simulation
+			Ans = tss_probforage_energygain_optimize_linear(V, U, K, C, L, my, phi, omega, beta, h, mb,mx)
+			#calculate category
+			no[x,y] = activetime6.get_category(Ans)
+		}
+	}
+	#plot category image
+	plotmode = activetime6.get_plotmode(no)
+	png(paste("zone_",name,".png",sep=""),height=1600,width=1600)
+	par(mfrow=c(1,1),cex=5.0,bg=rgb(0,0,0,0))
+	image.plotmode(x.ax,y.ax,plotmode,xlab="",ylab="",plot_legend = plot_legend)
+	dev.off()
+	
+	#list of categorization error (grey colors) 
+	plotmode$err_category
+	#list of categorization error (grey colors) by ignoring the number of peaks
+	sort(unique((plotmode$err_category)%%100))
 }
 
 #=== constant parameters ===
@@ -167,7 +300,8 @@ h = 1.0    	#handling time
 plot_legend = FALSE#TRUE
 plot.vb.my.figures("fig4", t, tw, wmin, wmax, ub, uk, vb, vk, 
                    lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
-	
+
+
 # FIGURE A2 simple models
 lm.seq = c(0.1,0.1,0.5,0.5,1.0,1.0)
 mx.seq = c(0.0,1.0,0.0,1.0,0.0,1.0)
@@ -178,33 +312,17 @@ for(iy in 1:length(lm.seq)){
 		plot.vb.my.figures(sprintf("figA2[%d,%d]",ix,iy), t, tw, wmin, wmax, 
 								 ub, ukvk.seq[ix], vb, ukvk.seq[ix], 
 								 lm.seq[iy], lk, ld, alpha, omega, phi, 
-								 mb, mx.seq[iy], my, r, cost, beta, h,plot_legend=FALSE )
+								 mb, mx.seq[iy], my, r, cost, beta.seq[ix], h,plot_legend=FALSE )
 	}
 }
 
-# FIGUEW 5 phi-r plot
-plot.r.phi.figures("fig5_vb10_my05",t, tw, wmin, wmax, ub, uk, 1.0, vk, 
-						 lm, lk, ld, alpha, omega, phi, mb, mx, 0.5, r, cost, beta, h,plot_legend = plot_legend)
-plot.r.phi.figures("fig5_vb10_my10",t, tw, wmin, wmax, ub, uk, 1.0, vk, 
-						 lm, lk, ld, alpha, omega, phi, mb, mx, 1.0, r, cost, beta, h,plot_legend = plot_legend)
-plot.r.phi.figures("fig5_vb10_my15",t, tw, wmin, wmax, ub, uk, 1.0, vk, 
-						 lm, lk, ld, alpha, omega, phi, mb, mx, 1.5, r, cost, beta, h,plot_legend = plot_legend)
-plot.r.phi.figures("fig5_vb15_my02",t, tw, wmin, wmax, ub, uk, 1.5, vk, 
-						 lm, lk, ld, alpha, omega, phi, mb, mx, 0.2, r, cost, beta, h,plot_legend = plot_legend)
-plot.r.phi.figures("fig5_vb15_my05",t, tw, wmin, wmax, ub, uk, 1.5, vk, 
-						 lm, lk, ld, alpha, omega, phi, mb, mx, 0.5, r, cost, beta, h,plot_legend = plot_legend)
-plot.r.phi.figures("fig5_vb15_my10",t, tw, wmin, wmax, ub, uk, 1.5, vk, 
-						 lm, lk, ld, alpha, omega, phi, mb, mx, 1.0, r, cost, beta, h,plot_legend = plot_legend)
-plot.r.phi.figures("fig5_vb15_my15",t, tw, wmin, wmax, ub, uk, 1.5, vk, 
-						 lm, lk, ld, alpha, omega, phi, mb, mx, 1.5, r, cost, beta, h,plot_legend = plot_legend)
-plot.r.phi.figures("fig5_vb20_my15",t, tw, wmin, wmax, ub, uk, 2.0, vk, 
-						 lm, lk, ld, alpha, omega, phi, mb, mx, 1.5, r, cost, beta, h,plot_legend = plot_legend)
-plot.r.phi.figures("fig5_vb20_my10",t, tw, wmin, wmax, ub, uk, 2.0, vk, 
-						 lm, lk, ld, alpha, omega, phi, mb, mx, 1.0, r, cost, beta, h,plot_legend = plot_legend)
-plot.r.phi.figures("fig5_vb20_my05",t, tw, wmin, wmax, ub, uk, 2.0, vk, 
-						 lm, lk, ld, alpha, omega, phi, mb, mx, 0.5, r, cost, beta, h,plot_legend = plot_legend)
+# FIGURE 5 phi-r plot
+plot.r.phi.figures("fig5a",t, tw, wmin, wmax, ub, uk, vb, vk, 
+						 lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
+plot.r.phi.figures("fig5b",t, tw, wmin, wmax, ub, uk, vb, vk, 
+						 lm, lk, ld, alpha, omega, phi, mb, 0, my, r, cost, beta, h,plot_legend = plot_legend)
 plot.r.phi.figures("fig5c",t, tw, wmin, wmax, ub, uk, vb, vk, 
-						 lm, lk, ld, alpha, omega, phi, mb, mx, 1, r, cost, beta, h,plot_legend = plot_legend)
+						 lm, lk, ld, alpha, omega, phi, mb, mx, 0, r, cost, beta, h,plot_legend = plot_legend)
 plot.r.phi.figures("fig5d",t, tw, wmin, wmax, ub, uk, vb, vk, 
 						 lm, lk, ld, alpha, 0, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
 plot.r.phi.figures("fig5e",t, tw, wmin, wmax, ub, uk, vb, vk, 
@@ -212,24 +330,50 @@ plot.r.phi.figures("fig5e",t, tw, wmin, wmax, ub, uk, vb, vk,
 plot.r.phi.figures("fig5f",t, tw, wmin, wmax, ub, uk, vb, vk, 
 						 1.0, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
 
-
-beta=1.0
-mx = 1.0
-# FIGURE 5 A2 A3
-for(lm in c(4.0,1.0,0.0)){
-  for(omega in c(0.0,1.0,2.0)){
-    for(mx in c(0.0,1.0,2.0)){
-      for(my in c(0.0,1.0,2.0)){
-        plot_legend = FALSE
-        if (mx==0.0 & my==0.0) { 
-          #plot_legend = TRUE 
-        }
-      	plot.r.phi.figures("figA3",t, tw, wmin, wmax, ub, uk, vb, vk, 
-      	                   lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend )
-      }
-    }
-  }
+# Figure A3
+mx.seq = c(0.5,1.0,2.0)
+my.seq = c(2.0,1.0,0.5)
+for(ix in 1:length(mx.seq)){
+	for(iy in 1:length(my.seq)){
+		plot.r.phi.figures(sprintf("figA3[%d,%d]",ix,iy),
+								 t, tw, wmin, wmax, ub, uk, vb, vk, 
+								 lm, lk, ld, alpha, omega, phi, mb, mx.seq[ix], my.seq[iy], r, cost, beta, h,plot_legend = plot_legend)
+	}
 }
+
+# Figure A4
+lm.seq = c(0.1,0.5,1.0)
+my.seq = c(2.0,1.0,0.5)
+for(ix in 1:length(lm.seq)){
+	for(iy in 1:length(my.seq)){
+		plot.r.phi.figures(sprintf("figA4[%d,%d]",ix,iy),
+								 t, tw, wmin, wmax, ub, uk, vb, vk, 
+								 lm.seq[ix], lk, ld, alpha, omega, phi, mb, mx, my.seq[iy], r, cost, beta, h,plot_legend = plot_legend)
+	}
+}
+
+# Figure A5
+lm.seq = c(0.1,0.5,1.0)
+my.seq = c(2.0,1.0,0.5)
+for(ix in 1:length(lm.seq)){
+	for(iy in 1:length(my.seq)){
+		plot.r.phi.figures(sprintf("figA5[%d,%d]",ix,iy),
+								 t, tw, wmin, wmax, ub, uk, vb, vk, 
+								 lm.seq[ix], lk, ld, alpha, 0.0, phi, mb, mx, my.seq[iy], r, cost, beta, h,plot_legend = plot_legend)
+	}
+}
+
+
+# Figure A6
+r.seq = c(0.1,0.3,0.9)
+phi.seq = c(0.0,0.1,0.3)
+for(ix in 1:length(r.seq)){
+	for(iy in 1:length(phi.seq)){
+		plot.vb.my.figures(sprintf("figA6[%d,%d]",ix,iy), t, tw, wmin, wmax, ub, uk, vb, vk, 
+								 lm, lk, ld, alpha, omega, phi.seq[iy], mb, mx, my, r.seq[ix], cost, beta, h,plot_legend = plot_legend)
+	}
+}
+
 
 
 
