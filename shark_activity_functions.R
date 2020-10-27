@@ -60,9 +60,11 @@ calc.watertemp = function(t,tw,wmin,wmax){
 #	wmax: maximum water temperature
 #	r: radius of shark's body
 calc.sharktemp = function(t, tw, wmin, wmax, r){
-	mass = r^2/(6.36 * 1e-6*3600)
-	V = 1 / sqrt(1 + (2*acos(-1)*mass/24)^2)
-	return((wmax+wmin)/2 + (wmax-wmin)/2*V*cos(2*acos(-1)*(t-tw)/24 - acos(V)))
+	#mass = r^2/(6.36 * 1e-6*3600)
+	k = 0.25
+	mass = r/k
+	V = 1 / sqrt(1 + (2*acos(-1)*mass/length(t))^2)
+	return((wmax+wmin)/2 + (wmax-wmin)/2*V*cos(2*acos(-1)*(t-tw)/length(t) - acos(V)))
 }
 
 #calculate light effect with new definition
@@ -76,7 +78,7 @@ calc.sharktemp = function(t, tw, wmin, wmax, r){
 #	twilight_coef: influence of twilight. 0.3 seems good (see comments inside of the function)
 #return
 #	sequence of predatation rate at each time
-calc.light_effect = function(t, l_min, light_influence, twilight_coef){
+calc.light_effect_old = function(t, l_min, light_influence, twilight_coef){
 	#Around twilight_coef = 0.3 seems to be reasonable because
 	#	- the definition of astronominal twilight is that the sun is less than -18 degree below the horizon. 
 	#	- When the Culmination altitute = 90 degree, 18 degree passes for 1.2 hours, so twilight start from t = 4.8 and finish at t=19.2.
@@ -91,6 +93,34 @@ calc.light_effect = function(t, l_min, light_influence, twilight_coef){
 	alpha = log(l_min)
 	return(exp(alpha*lwave^(1/light_influence)))
 }
+
+#calculate light effect with new definition
+#	the light level is the cosin curve + constant value for twilight
+#	the light level less than zero is ignored (just considred as zero)
+#	the predation rate is exponential of light level
+#param
+#	t: time sequence
+#	l_min: minimum predation rate
+#	light_influence: strength of light influence on predation (how strong light is required for the reduction of predation rate)
+#	twilight_coef: influence of twilight. 0.3 seems good (see comments inside of the function)
+#return
+#	sequence of predatation rate at each time
+calc.light_effect = function(t, mu, rho, kappa, sigma){
+	#Around twilight_coef = 0.3 seems to be reasonable because
+	#	- the definition of astronominal twilight is that the sun is less than -18 degree below the horizon. 
+	#	- When the Culmination altitute = 90 degree, 18 degree passes for 1.2 hours, so twilight start from t = 4.8 and finish at t=19.2.
+	#	- This time becomes longer when the Culmination altitude is less than 90 degree.
+	#	- At twilight_coef = 0.3,
+	#		- the sea is perfectly dark when t is from 20.5 to 3.5.
+	#		- the sea is slightly bright (3% of noon) at t=4.5, 19.5
+	#		- the light level rach to 20% and 40% of noon at t=5.5, 6.5.
+	
+	lwave=(1-twilight_coef)*cos(2*pi*(t-12)/length(t)) + twilight_coef
+	lwave[lwave<0] = 0
+	return(mu+rho*lwave^kappa)
+#	return(exp(alpha*lwave^(1/light_influence)))
+}
+
 
 #plot figure of the simulation result
 #	x:time
@@ -124,8 +154,8 @@ plot.sim_result = function(Ans,title,L){
 #	title: title of the figure
 #return
 #	none
-plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, lm, lk, ld, alpha, omega, phi, mb, mx, my, r, cost, beta, h, light_mode = TRUE){
-	FigName = paste(nameIn,"_vb-my","_B",beta,"_uk",10*uk,"_vK",10*vk,"_lm",10*lm,"_mX",10*mx,"_mY",my,"_vb",vb,"_r",r,"_c",cost*100,"_phi",phi*100,sep = "")
+plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, mu,rho,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h, light_mode = TRUE){
+	FigName = paste(nameIn,"_vb-my","_B",beta,"_uk",10*uk,"_vK",10*vk,"_mu",10*mu,"_rho",10*rho,"_mX",10*mx,"_mY",my,"_vb",vb,"_r",r,"_c",cost*100,"_phi",phi*100,sep = "")
 
 	# calculate time-depending parameters
 	watertemp=calc.watertemp(t,tw,wmin,wmax)
@@ -134,7 +164,7 @@ plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk,
 	V = vb + vk*(sharktemp-(wmax+wmin)/2)
 	K = rep(alpha,length=length(t))
 	C = rep(cost,length=length(t))
-	L = calc.light_effect(t, lm, lk, ld)
+	L = calc.light_effect(t, mu,rho,kappa,sigma)
 	
 	#plot_and_save.sim_result_with_wave = function(FigName,V,U,L,alpha,beta,mx,my,mb,phi,omega,h){
 	Ans = tss_probforage_energygain_optimize_linear(V, U, K, C, L, my, phi, omega, beta, h, mb,mx)
