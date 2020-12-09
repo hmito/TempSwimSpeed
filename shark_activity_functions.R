@@ -154,7 +154,7 @@ plot.sim_result = function(Ans,title,L){
 #	title: title of the figure
 #return
 #	none
-plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, mu,rho,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h, light_mode = TRUE){
+plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, mu,rho,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h, light_mode = TRUE, ylim=c(-0.5,2.2)){
 	FigName = paste(nameIn,"_vb-my","_B",beta,"_uk",10*uk,"_vK",10*vk,"_mu",10*mu,"_rho",10*rho,"_mX",10*mx,"_mY",my,"_vb",vb,"_r",r,"_c",cost*100,"_phi",phi*100,sep = "")
 
 	# calculate time-depending parameters
@@ -188,7 +188,7 @@ plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk,
 	
 	png(paste(FigName,"_upper.png",sep=""),height=1200,width=1600)
 	par(cex=5.0,mex=1.0,bg=rgb(0,0,0,0))
-	plot(rep(dt,times=3),c(pred_pfo,prey_epfo,prey_pfo),type="n",col="red",xaxt="n",xlim=c(0,24),ylim=c(-0.5,2.2),lwd=3,xlab="",ylab="")
+	plot(rep(dt,times=3),c(pred_pfo,prey_epfo,prey_pfo),type="n",col="red",xaxt="n",xlim=c(0,24),ylim=ylim,lwd=3,xlab="",ylab="")
 	if(light_mode){
 		polygon(c(-10,-10,100,100),c(-100,100,100,-100),col="white",border=rgb(0,0,0,0))
 		polygon(c(-10,-10,4,4),c(-100,100,100,-100),col="grey80",border=rgb(0,0,0,0))
