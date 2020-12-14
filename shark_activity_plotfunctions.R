@@ -4,9 +4,9 @@ source("shark_activity_functions.R")
 plot.r.phi.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, mu,rho,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h, plot_legend, plot_example=FALSE){
 	x.seq = seq(0.2,5.00,length=4)
 	y.seq = seq(0.02,0.24,length=5)
-	name = paste(nameIn,"_r-phi","_B",beta,"_uk",10*uk,"_vk",10*vk,"_lm",10*lm,"_mX",10*mx,"_mY",10*my,"_vb",vb*10,"_omega",omega*10,"_r","[x]","_c",cost*100,"_phi","[y]",sep = "")
+	name = paste("_r-phi","_B",beta,"_uk",10*uk,"_vk",10*vk,"_mu",10*mu,"_rho",10*rho,"_mX",10*mx,"_mY",10*my,"_vb",vb*10,"_omega",omega*10,"_r","[x]","_c",cost*100,"_phi","[y]",sep = "")
 	if(plot_example){
-		png(paste("examples_",name,".png",sep=""),height=2000,width=2000)
+		png(paste0(nameIn,"_examples_",name,".png",sep=""),height=2000,width=2000)
 		par(mfrow=c(length(y.seq),length(x.seq)),cex=2.0,mex=0.3)
 		for(phi in rev(y.seq)){
 			for(r in x.seq){
@@ -52,7 +52,7 @@ plot.r.phi.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, mu,rho,ka
 	}
 	#plot category image
 	plotmode = activetime6.get_plotmode(no)
-	png(paste("zone_",name,".png",sep=""),height=1600,width=1600)
+	png(paste0(nameIn,"_zone_",name,".png",sep=""),height=1600,width=1600)
 	par(mfrow=c(1,1),cex=5.0,bg=rgb(0,0,0,0))
 	image.plotmode(x.ax,y.ax,plotmode,xlab="",ylab="",plot_legend = plot_legend)
 	dev.off()
@@ -66,11 +66,11 @@ plot.r.phi.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, mu,rho,ka
 plot.vb.my.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, mu,rho,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h, plot_legend, plot_example=FALSE){
 	x.seq = seq(1.0,2.0,length=5)
 	y.seq = seq(0.0,2.0,length=5)
-	name = paste(nameIn,"_vb-my","_B",beta,"_uk",10*uk,"_vK",10*vk,"_lm",10*lm,"_mX",10*mx,"_mY","[y]","_vb","[x]","_omega",omega*10,"_r",r,"_c",cost*100,"_phi",phi*100,sep = "")
+	name = paste("_vb-my","_B",beta,"_uk",10*uk,"_vK",10*vk,"_mu",10*mu,"_rho",10*rho,"_mX",10*mx,"_mY","[y]","_vb","[x]","_omega",omega*10,"_r",r,"_c",cost*100,"_phi",phi*100,sep = "")
 	
 	#plot multiple results of simulations with changing v0 and r
 	if(plot_example){
-		png(paste("examples_",name,".png",sep=""),height=2000,width=2000)
+		png(paste0(nameIn,"_examples_",name,".png",sep=""),height=2000,width=2000)
 		par(mfrow=c(length(y.seq),length(x.seq)),cex=2.0,mex=0.3)
 		for(my in rev(y.seq)){
 			for(vb in x.seq){
@@ -118,7 +118,7 @@ plot.vb.my.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, mu,rho,ka
 	}
 	#plot category image
 	plotmode = activetime6.get_plotmode(no)
-	png(paste("zone_",name,".png",sep=""),height=1600,width=1600)
+	png(paste0(nameIn,"_zone_",name,".png"),height=1600,width=1600)
 	par(mfrow=c(1,1),cex=5.0,bg=rgb(0,0,0,0))
 	image.plotmode(x.ax,y.ax,plotmode,xlab="",ylab="",plot_legend = plot_legend)
 	dev.off()
@@ -133,9 +133,9 @@ plot.vb.r.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, mu,rho,kap
 	y.seq = seq(0.2,5.00,length=4)
 	x.seq = seq(1.0,2.0,length=5)
 	
-	name = paste(nameIn,"_vb-r","_B",beta,"_uk",10*uk,"_vk",10*vk,"_lm",10*lm,"_mX",10*mx,"_mY",10*my,"_vb","[x]","_omega",omega*10,"_r","[y]","_c",cost*100,"_phi",phi,sep = "")
+	name = paste("_vb-r","_B",beta,"_uk",10*uk,"_vk",10*vk,"_mu",10*mu,"_rho",10*rho,"_mX",10*mx,"_mY",10*my,"_vb","[x]","_omega",omega*10,"_r","[y]","_c",cost*100,"_phi",phi,sep = "")
 	if(plot_example){
-		png(paste("examples_",name,".png",sep=""),height=2000,width=2000)
+		png(paste0(nameIn,"_examples_",name,".png"),height=2000,width=2000)
 		par(mfrow=c(length(y.seq),length(x.seq)),cex=2.0,mex=0.3)
 		for(r in rev(y.seq)){
 			for(vb in x.seq){
@@ -182,7 +182,7 @@ plot.vb.r.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, mu,rho,kap
 	}
 	#plot category image
 	plotmode = activetime6.get_plotmode(no)
-	png(paste("zone_",name,".png",sep=""),height=1600,width=1600)
+	png(paste0(nameIn,"_zone_",name,".png"),height=1600,width=1600)
 	par(mfrow=c(1,1),cex=5.0,bg=rgb(0,0,0,0))
 	image.plotmode(x.ax,y.ax,plotmode,xlab="",ylab="",plot_legend = plot_legend)
 	dev.off()
@@ -196,11 +196,11 @@ plot.vb.r.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, mu,rho,kap
 plot.my.phi.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, mu,rho,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h, plot_legend, plot_example=FALSE){
 	x.seq = seq(0.0,2.0,length=5)
 	y.seq = seq(0.02,0.24,length=5)
-	name = paste(nameIn,"_my-phi","_B",beta,"_uk",10*uk,"_vK",10*vk,"_lm",10*lm,"_mX",10*mx,"_mY","[x]","_vb",vb,"_omega",omega*10,"_r",r,"_c",cost*100,"_phi","[y]",sep = "")
+	name = paste("_my-phi","_B",beta,"_uk",10*uk,"_vK",10*vk,"_mu",10*mu,"_rho",10*rho,"_mX",10*mx,"_mY","[x]","_vb",vb,"_omega",omega*10,"_r",r,"_c",cost*100,"_phi","[y]",sep = "")
 	
 	#plot multiple results of simulations with changing v0 and r
 	if(plot_example){
-		png(paste("examples_",name,".png",sep=""),height=2000,width=2000)
+		png(paste0(nameIn,"_examples_",name,".png"),height=2000,width=2000)
 		par(mfrow=c(length(y.seq),length(x.seq)),cex=2.0,mex=0.3)
 		for(phi in rev(y.seq)){
 			for(my in x.seq){
@@ -248,7 +248,7 @@ plot.my.phi.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, mu,rho,k
 	}
 	#plot category image
 	plotmode = activetime6.get_plotmode(no)
-	png(paste("zone_",name,".png",sep=""),height=1600,width=1600)
+	png(paste0(nameIn,"_zone_",name,".png"),height=1600,width=1600)
 	par(mfrow=c(1,1),cex=5.0,bg=rgb(0,0,0,0))
 	image.plotmode(x.ax,y.ax,plotmode,xlab="",ylab="",plot_legend = plot_legend)
 	dev.off()
@@ -262,11 +262,11 @@ plot.my.phi.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, mu,rho,k
 plot.uk.my.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, mu,rho,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h, plot_legend, plot_example=FALSE){
 	x.seq = seq(0.0,4.0,length=5)
 	y.seq = seq(0.0,2.0,length=5)
-	name = paste(nameIn,"_uk-my","_B",beta,"_uk","[x]","_vK",10*vk,"_lm",10*lm,"_mX",10*mx,"_mY","[y]","_vb",vb,"_omega",omega*10,"_r",r,"_c",cost*100,"_phi",phi*100,sep = "")
+	name = paste("_uk-my","_B",beta,"_uk","[x]","_vK",10*vk,"_mu",10*mu,"_rho",10*rho,"_mX",10*mx,"_mY","[y]","_vb",vb,"_omega",omega*10,"_r",r,"_c",cost*100,"_phi",phi*100,sep = "")
 	
 	#plot multiple results of simulations with changing v0 and r
 	if(plot_example){
-		png(paste("examples_",name,".png",sep=""),height=2000,width=2000)
+		png(paste0(nameIn,"_examples_",name,".png",sep=""),height=2000,width=2000)
 		par(mfrow=c(length(y.seq),length(x.seq)),cex=2.0,mex=0.3)
 		for(my in rev(y.seq)){
 			for(uk in x.seq){
@@ -314,7 +314,7 @@ plot.uk.my.figures=function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, mu,rho,ka
 	}
 	#plot category image
 	plotmode = activetime6.get_plotmode(no)
-	png(paste("zone_",name,".png",sep=""),height=1600,width=1600)
+	png(paste0(nameIn,"_zone_",name,".png"),height=1600,width=1600)
 	par(mfrow=c(1,1),cex=5.0,bg=rgb(0,0,0,0))
 	image.plotmode(x.ax,y.ax,plotmode,xlab="",ylab="",plot_legend = plot_legend)
 	dev.off()
