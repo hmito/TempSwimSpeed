@@ -138,10 +138,10 @@ plot.vb.my.figures("fig3xc", t, tw, wmin, wmax, ub, uk, vb, vk,
 
 
 plot_and_save.sim_result_with_wave("Fig3ya", t, tw, 27.5, 27.5, ub, uk, 1.4, vk, 
-											  1.0, 0.0, kappa, sigma, alpha, 0, phi, mb, mx, 0.0, r, predcost, beta, h)
+											  1.0, 0.0, kappa, sigma, alpha, 0, phi, mb, mx, 1.0, r, predcost, beta, h)
 
 plot_and_save.sim_result_with_wave("Fig3yb", t, tw, 27.5, 27.5, ub, uk, 1.0, vk, 
-											  1.0, 0.0, kappa, sigma, alpha, 0, phi, mb, mx, 0.0, r, predcost, beta, h)
+											  1.0, 0.0, kappa, sigma, alpha, 0, phi, mb, mx, 1.0, r, predcost, beta, h)
 
 plot_and_save.sim_result_with_wave("Fig3yc", t, tw, wmin, wmax, ub, uk, 1.2, vk, 
 											  1.0, 0.0, kappa, sigma, alpha, 0, phi, mb, mx, 0.0, r, predcost, beta, h)
@@ -161,8 +161,8 @@ plot_and_save.sim_result_with_wave("Fig3yg", t, tw, wmin, wmax, ub, uk, 1.5, vk,
 plot_and_save.sim_result_with_wave("Fig3yh", t, tw, wmin, wmax, ub, uk, 1.6, vk, 
 											  1.0, 0.0, kappa, sigma, alpha, omega, phi, mb, mx, 1.2, r, predcost, beta, h)
 
-plot_and_save.sim_result_with_wave("Fig3yi", t, tw, wmin, wmax, ub, uk, 1.3, vk, 
-											  1.0, 0.0, kappa, sigma, alpha, omega, phi, mb, mx, 0.4, r, predcost, beta, h)
+plot_and_save.sim_result_with_wave("Fig3yi", t, tw, wmin, wmax, ub, uk, 1.45, vk, 
+											  1.0, 0.0, kappa, sigma, alpha, omega, phi, mb, mx, 0.50, r, predcost, beta, h)
 
 # FIGURE 4 basic zoneplot  ========================
 plot_legend = FALSE#TRUE
