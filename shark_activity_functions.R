@@ -115,7 +115,7 @@ calc.light_effect = function(t, mu, rho, kappa, sigma){
 	#		- the sea is slightly bright (3% of noon) at t=4.5, 19.5
 	#		- the light level rach to 20% and 40% of noon at t=5.5, 6.5.
 	
-	lwave=(1-twilight_coef)*cos(2*pi*(t-12)/length(t)) + twilight_coef
+	lwave=(1-sigma)*cos(2*pi*(t-12)/length(t)) + sigma
 	lwave[lwave<0] = 0
 	return(mu+rho*lwave^kappa)
 #	return(exp(alpha*lwave^(1/light_influence)))
@@ -154,9 +154,112 @@ plot.sim_result = function(Ans,title,L){
 #	title: title of the figure
 #return
 #	none
-plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, mu,rho,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h, light_mode = TRUE, ylim=c(-0.5,2.2)){
+plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, mu,rho,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h, light_mode = TRUE, ylim=c(-0.5,1.5)){
 	FigName = paste(nameIn,"_vb-my","_B",beta,"_uk",10*uk,"_vK",10*vk,"_mu",10*mu,"_rho",10*rho,"_mX",10*mx,"_mY",my,"_vb",vb,"_r",r,"_c",cost*100,"_phi",phi*100,sep = "")
 
+	# calculate time-depending parameters
+	watertemp=calc.watertemp(t,tw,wmin,wmax)
+	sharktemp=calc.sharktemp(t,tw,wmin,wmax,r) 
+	U = ub + uk*(watertemp-(wmax+wmin)/2)
+	V = vb + vk*(sharktemp-(wmax+wmin)/2)
+	K = rep(alpha,length=length(t))
+	C = rep(cost,length=length(t))
+	L = calc.light_effect(t,mu,rho,kappa,sigma)
+	
+	#plot_and_save.sim_result_with_wave = function(FigName,V,U,L,alpha,beta,mx,my,mb,phi,omega,h){
+	Ans = tss_probforage_energygain_optimize_linear(V, U, K, C, L, my, phi, omega, beta, h, mb,mx)
+	pred_01 = L*ifelse(V>U,V-U,0)^beta/(1+h*L*ifelse(V>U,V-U,0)^beta)-cost
+
+	#see Appendix B for the following equations
+	thr = (cost/(1-h*cost)/L/ifelse(V>U,V-U,0)^beta - phi)/(1 - phi)
+	rthr = Ans$ThresholdPreyFreq
+	m0 = mb + phi*
+		(mx + my*L*(V-U)^beta/(1+h*L*(V-U)^beta)*(0 > thr))
+	mP = mb + (phi+(1-phi)*rthr)*
+		(mx + my*L*(V-U)^beta/(1+h*L*(V-U)^beta)*(0 > thr))
+	m1 = mb + 1*
+		(mx + my*L*(V-U)^beta/(1+h*L*(V-U)^beta)*(1 > thr))
+	prey_0P = alpha*(1+omega*U)*(rthr)/(mP-m0) -  Ans$PreyW
+	prey_0P[rthr<=1e-10] = -Inf
+	prey_P1 = alpha*(1+omega*U)*(1-rthr)/(m1-mP) -  Ans$PreyW
+	prey_P1[rthr>=1.0] = prey_0P[rthr>=1.0]
+	
+	pred_eff = L*(V-U)^beta
+	pred_thr = cost/(1-cost*h)
+	pred_sthr = cost/phi/(1-cost*h)
+	prey_eff= alpha*(1+omega*U)/((1-phi)*mx+my*pred_eff/(1+h*pred_eff))
+	prey_peff= alpha/(1-phi) * alpha*(1+omega*U)/(mx+my*(1-h*cost)*pred_eff^2/(1+h*pred_eff)/((1-h*cost)*pred_eff-cost))
+	prey_reff= prey_eff*(Ans$ThresholdPreyFreq>0.99)+prey_peff*(Ans$ThresholdPreyFreq<=0.99)
+	prey_thr = Ans$PreyW
+	
+	
+	pred_pfo = pred_01
+	prey_epfo = prey_0P
+	prey_pfo = prey_P1
+	
+	dt=(-1):26 - 0.5
+	pred_pfo = pred_pfo[c(23,24,1:24,1,2)]
+	prey_epfo= prey_epfo[c(23,24,1:24,1,2)]
+	prey_pfo= prey_pfo[c(23,24,1:24,1,2)]
+	
+	png(paste(FigName,"_upper.png",sep=""),height=1000,width=1200)
+	par(cex=7.0,mex=0.5,bg=rgb(0,0,0,0))
+	plot(rep(dt,times=3),c(pred_pfo,prey_epfo,prey_pfo),type="n",col="red",xaxt="n",xlim=c(0,24),ylim=ylim,lwd=3,xlab="",ylab="")
+	if(light_mode){
+		polygon(c(-10,-10,100,100),c(-100,100,100,-100),col="white",border=rgb(0,0,0,0))
+		polygon(c(-10,-10,4,4),c(-100,100,100,-100),col="grey80",border=rgb(0,0,0,0))
+		polygon(c(4,4,8,8),c(-100,100,100,-100),col="grey90",border=rgb(0,0,0,0))
+		polygon(c(16,16,20,20),c(-100,100,100,-100),col="grey90",border=rgb(0,0,0,0))
+		polygon(c(20,20,100,100),c(-100,100,100,-100),col="grey80",border=rgb(0,0,0,0))
+	}
+	lines(c(-100,100),c(0,0))
+	#lines(c(-100,100),c(pred_sthr,pred_sthr-pred_thr),col="red",lwd=3)
+	lines(dt,prey_epfo,type="l",col="skyblue",lwd=8)#,lty="dotted")
+	lines(dt,prey_pfo,type="l",col="blue",lwd=8)
+	lines(dt,pred_pfo,type="l",col="red",lwd=8)
+	pred_pfo[pred_pfo<0]=0
+	prey_pfo[prey_pfo<0]=0
+	polygon(c(dt,rev(dt)),c(pred_pfo,rep(0,length=length(dt))),col=rgb(1,0,0,0.3),border=rgb(0,0,0,0))
+	polygon(c(dt,rev(dt)),c(prey_pfo,rep(0,length=length(dt))),col=rgb(0,0,1,0.3),border=rgb(0,0,0,0))
+	dev.off()
+	
+	
+	#plot simulation results
+	png(paste(FigName,"_lower.png",sep=""),height=1000,width=1200)
+	par(cex=7.0,mex=0.5,bg=rgb(0,0,0,0))
+	
+	Prey= Ans$Prey[c(23,24,1:24,1,2)]
+	Predator = Ans$Predator[c(23,24,1:24,1,2)]
+	
+	plot(0,0,type="n",
+		  xlab="",ylab="",
+		  xlim=c(0,tnum),ylim=c(-0.02,1.02),xaxt="n")
+	if(light_mode){
+		polygon(c(-10,-10,100,100),c(-100,100,100,-100),col="white",border=rgb(0,0,0,0))
+		polygon(c(-10,-10,4,4),c(-100,100,100,-100),col="grey80",border=rgb(0,0,0,0))
+		polygon(c(4,4,8,8),c(-100,100,100,-100),col="grey90",border=rgb(0,0,0,0))
+		polygon(c(16,16,20,20),c(-100,100,100,-100),col="grey90",border=rgb(0,0,0,0))
+		polygon(c(20,20,100,100),c(-100,100,100,-100),col="grey80",border=rgb(0,0,0,0))
+	}
+	lines(dt,Prey,col="blue",lwd=8,lty="dashed")
+	lines(dt,Predator*0.99,col="red",lwd=8)
+	axis(1,at=c(0,4,8,12,16,20,24))
+	dev.off()
+}
+
+#plot and save figures of the simulation result with performance wave
+#	x:time
+#	y in upper panel:predation performance and foraging efficiency of predator and prey
+#	y in lower panel:foraging frequency of prey(blue) and predator(red))
+#parameters
+#	FigName: Figure name
+#	Ans: return value of tss_probforage_energygain_optimize function
+#	title: title of the figure
+#return
+#	none
+plot_and_save.sim_result_with_wave_old = function(nameIn, t, tw, wmin, wmax, ub, uk, vb, vk, mu,rho,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h, light_mode = TRUE, ylim=c(-0.5,1.5)){
+	FigName = paste(nameIn,"_vb-my","_B",beta,"_uk",10*uk,"_vK",10*vk,"_mu",10*mu,"_rho",10*rho,"_mX",10*mx,"_mY",my,"_vb",vb,"_r",r,"_c",cost*100,"_phi",phi*100,sep = "")
+	
 	# calculate time-depending parameters
 	watertemp=calc.watertemp(t,tw,wmin,wmax)
 	sharktemp=calc.sharktemp(t,tw,wmin,wmax,r) 
@@ -169,10 +272,10 @@ plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk,
 	#plot_and_save.sim_result_with_wave = function(FigName,V,U,L,alpha,beta,mx,my,mb,phi,omega,h){
 	Ans = tss_probforage_energygain_optimize_linear(V, U, K, C, L, my, phi, omega, beta, h, mb,mx)
 	pred_eff = L*(V-U)^beta
-	pred_thr = predcost/(1-predcost*h)
-	pred_sthr = predcost/phi/(1-predcost*h)
+	pred_thr = cost/(1-cost*h)
+	pred_sthr = cost/phi/(1-cost*h)
 	prey_eff= alpha*(1+omega*U)/((1-phi)*mx+my*pred_eff/(1+h*pred_eff))
-	prey_peff= alpha/(1-phi) * alpha*(1+omega*U)/(mx+my*(1-h*predcost)*pred_eff^2/(1+h*pred_eff)/((1-h*predcost)*pred_eff-predcost))
+	prey_peff= alpha/(1-phi) * alpha*(1+omega*U)/(mx+my*(1-h*cost)*pred_eff^2/(1+h*pred_eff)/((1-h*cost)*pred_eff-cost))
 	prey_reff= prey_eff*(Ans$ThresholdPreyFreq>0.99)+prey_peff*(Ans$ThresholdPreyFreq<=0.99)
 	prey_thr = Ans$PreyW
 	
@@ -186,8 +289,8 @@ plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk,
 	prey_epfo= prey_epfo[c(23,24,1:24,1,2)]
 	prey_pfo= prey_pfo[c(23,24,1:24,1,2)]
 	
-	png(paste(FigName,"_upper.png",sep=""),height=1200,width=1600)
-	par(cex=5.0,mex=1.0,bg=rgb(0,0,0,0))
+	png(paste(FigName,"_upper.png",sep=""),height=1000,width=1200)
+	par(cex=9.0,mex=0.5,bg=rgb(0,0,0,0))
 	plot(rep(dt,times=3),c(pred_pfo,prey_epfo,prey_pfo),type="n",col="red",xaxt="n",xlim=c(0,24),ylim=ylim,lwd=3,xlab="",ylab="")
 	if(light_mode){
 		polygon(c(-10,-10,100,100),c(-100,100,100,-100),col="white",border=rgb(0,0,0,0))
@@ -209,8 +312,8 @@ plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk,
 	
 	
 	#plot simulation results
-	png(paste(FigName,"_lower.png",sep=""),height=1200,width=1600)
-	par(cex=5.0,mex=1.0,bg=rgb(0,0,0,0))
+	png(paste(FigName,"_lower.png",sep=""),height=1000,width=1200)
+	par(cex=9.0,mex=0.5,bg=rgb(0,0,0,0))
 	
 	Prey= Ans$Prey[c(23,24,1:24,1,2)]
 	Predator = Ans$Predator[c(23,24,1:24,1,2)]
@@ -230,7 +333,7 @@ plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk,
 	axis(1,at=c(0,4,8,12,16,20,24))
 	dev.off()
 }
-	
+
 #major-active-time based categorization with 5 time zone
 #parameters
 #	Ans: return value of tss_probforage_energygain_optimize function

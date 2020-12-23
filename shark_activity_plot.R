@@ -123,10 +123,10 @@ axis(1,at=c(0,4,8,12,16,20,24))
 dev.off()
 
 # Fig3 ========================
-plot_and_save.sim_result_with_wave("Fig3c", t, tw, wmin, wmax, ub, uk, 1.5, vk, mu, rho, kappa, sigma, alpha, omega, phi, mb, mx, 0.0, r, predcost, beta, h)
-plot_and_save.sim_result_with_wave("Fig3d", t, tw, wmin, wmax, ub, uk, 2.0, vk, mu, rho, kappa, sigma, alpha, omega, phi, mb, mx, 1.5, r, predcost, beta, h)
-plot_and_save.sim_result_with_wave("Fig3b", t, tw, wmin, wmax, ub, uk, 1.5, vk, mu, rho, kappa, sigma, alpha, omega, phi, mb, mx, 0.5, r, predcost, beta, h)
-plot_and_save.sim_result_with_wave("Fig3a", t, tw, wmin, wmax, ub, uk, 1.5, vk, mu, rho, kappa, sigma, alpha, omega, phi, mb, mx, 0.2, r, predcost, beta, h)
+plot_and_save.sim_result_with_wave("Fig3c", t, tw, wmin, wmax, ub, uk, 1.5, vk, mu, rho, kappa, sigma, alpha, omega, phi, mb, mx, 0.0, r, cost, beta, h)
+plot_and_save.sim_result_with_wave("Fig3d", t, tw, wmin, wmax, ub, uk, 2.0, vk, mu, rho, kappa, sigma, alpha, omega, phi, mb, mx, 1.5, r, cost, beta, h)
+plot_and_save.sim_result_with_wave("Fig3b", t, tw, wmin, wmax, ub, uk, 1.5, vk, mu, rho, kappa, sigma, alpha, omega, phi, mb, mx, 0.5, r, cost, beta, h)
+plot_and_save.sim_result_with_wave("Fig3a", t, tw, wmin, wmax, ub, uk, 1.5, vk, mu, rho, kappa, sigma, alpha, omega, phi, mb, mx, 0.2, r, cost, beta, h)
 
 
 plot.vb.my.figures("fig3xa", t, tw, 27.5, 27.5, ub, uk, vb, vk, 
@@ -144,22 +144,22 @@ plot_and_save.sim_result_with_wave("Fig3yb", t, tw, 27.5, 27.5, ub, uk, 1.0, vk,
 											  1.0, 0.0, kappa, sigma, alpha, 0, phi, mb, mx, 1.0, r, predcost, beta, h)
 
 plot_and_save.sim_result_with_wave("Fig3yc", t, tw, wmin, wmax, ub, uk, 1.2, vk, 
-											  1.0, 0.0, kappa, sigma, alpha, 0, phi, mb, mx, 0.0, r, predcost, beta, h)
+											  1.0, 0.0, kappa, sigma, alpha, 0, phi, mb, mx, 0.0, r, cost, beta, h)
 
 plot_and_save.sim_result_with_wave("Fig3yd", t, tw, wmin, wmax, ub, uk, 1.2, vk, 
-											  1.0, 0.0, kappa, sigma, alpha, 0, phi, mb, mx, 2.0, r, predcost, beta, h)
+											  1.0, 0.0, kappa, sigma, alpha, 0, phi, mb, mx, 2.0, r, cost, beta, h)
 
 plot_and_save.sim_result_with_wave("Fig3ye", t, tw, wmin, wmax, ub, uk, 1.65, vk, 
-											  1.0, 0.0, kappa, sigma, alpha, 0, phi, mb, mx, 2.0, r, predcost, beta, h)
+											  1.0, 0.0, kappa, sigma, alpha, 0, phi, mb, mx, 2.0, r, cost, beta, h)
 
 plot_and_save.sim_result_with_wave("Fig3yf", t, tw, wmin, wmax, ub, uk, 1.2, vk, 
-											  1.0, 0.0, kappa, sigma, alpha, omega, phi, mb, mx, 0.5, r, predcost, beta, h)
+											  1.0, 0.0, kappa, sigma, alpha, omega, phi, mb, mx, 0.5, r, cost, beta, h)
 
-plot_and_save.sim_result_with_wave("Fig3yg", t, tw, wmin, wmax, ub, uk, 1.5, vk, 
-											  1.0, 0.0, kappa, sigma, alpha, omega, phi, mb, mx, 1.2, r, predcost, beta, h)
+plot_and_save.sim_result_with_wave("Fig3yg", t, tw, wmin, wmax, ub, uk, 1.6, vk, 
+											  1.0, 0.0, kappa, sigma, alpha, omega, phi, mb, mx, 1.0, r, cost, beta, h)
 
-plot_and_save.sim_result_with_wave("Fig3yh", t, tw, wmin, wmax, ub, uk, 1.6, vk, 
-											  1.0, 0.0, kappa, sigma, alpha, omega, phi, mb, mx, 1.2, r, predcost, beta, h)
+plot_and_save.sim_result_with_wave("Fig3yh", t, tw, wmin, wmax, ub, uk, 1.4, vk, 
+											  1.0, 0.0, kappa, sigma, alpha, omega, phi, mb, mx, 0.3, r, cost, beta, h)
 
 plot_and_save.sim_result_with_wave("Fig3yi", t, tw, wmin, wmax, ub, uk, 1.45, vk, 
 											  1.0, 0.0, kappa, sigma, alpha, omega, phi, mb, mx, 0.50, r, predcost, beta, h)
@@ -202,7 +202,7 @@ for(iy in 1:length(rho.seq)){
 	for(ix in 1:length(omega.seq)){
 		plot.vb.my.figures(sprintf("figA2[%d,%d]",ix,iy), t, tw, wmin.seq[ix], wmax.seq[ix], 
 								 ub, uk, vb, vk, 
-								 mu.seq[iy],rho.seq[iy], kappa,sigma, alpha, omega.seq[ix], phi, 
+								 mu.seq[iy],rho.seq[iy], kappa,sigma, alpha, omega.seq[ix], 0, 
 								 mb, mx, my, r, cost, beta, h,plot_legend=FALSE )
 	}
 }
@@ -316,7 +316,7 @@ plot.vb.my.figures("figA9c", t, tw, wmin, wmax, ub, uk, vb, vk,
 
 plot.r.phi.figures("figA9d",t, tw, wmin, wmax, ub, uk, vb, vk, 
 						 0.5, 0.5,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
-plot_and_save.sim_result_with_wave("FigXc", t, tw, wmin, wmax, ub, uk, 1.5, vk, mu, rho, kappa, sigma, alpha, omega, phi, mb, mx, 0.0, r, predcost, beta, h)
+plot_and_save.sim_result_with_wave("FigXc", t, tw, wmin, wmax, ub, uk, 1.5, vk, mu, rho, kappa, sigma, alpha, omega, phi, mb, mx, 0.0, r, cost, beta, h)
 
 plot.r.phi.figures("figA9e",t, tw, wmin, wmax, ub, uk, vb, vk, 
 						 0.1, 0.9,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
@@ -358,12 +358,12 @@ for(ix in 1:length(r.seq)){
 
 
 # light effect with line ========================
-plot_and_save.sim_result_with_wave("FigXa", t, tw, wmin, wmax, ub, 0, 1.3, 0, 1, -0.5, kappa, sigma, alpha, omega, phi, mb, 0, 0.5, r, predcost, beta, h)
-plot_and_save.sim_result_with_wave("FigXc", t, tw, wmin, wmax, ub, 0, 1.3, 0, 0.75, 0, kappa, sigma, alpha, omega, phi, mb, 0, 0.5, r, predcost, beta, h)
-plot_and_save.sim_result_with_wave("FigXe", t, tw, wmin, wmax, ub, 0, 1.3, 0, 0.5, 0.5, kappa, sigma, alpha, omega, phi, mb, 0, 0.5, r, predcost, beta, h)
-plot_and_save.sim_result_with_wave("FigXb", t, tw, wmin, wmax, ub, 0, 2, 0, 1, -0.5, kappa, sigma, alpha, omega, phi, mb, 0, 2, r, predcost, beta, h)
-plot_and_save.sim_result_with_wave("FigXd", t, tw, wmin, wmax, ub, 0, 2, 0, 0.75, 0, kappa, sigma, alpha, omega, phi, mb, 0, 2, r, predcost, beta, h)
-plot_and_save.sim_result_with_wave("FigXf", t, tw, wmin, wmax, ub, 0, 2, 0, 0.5, 0.5, kappa, sigma, alpha, omega, phi, mb, 0, 2, r, predcost, beta, h)
+plot_and_save.sim_result_with_wave("FigXa", t, tw, wmin, wmax, ub, 0, 1.3, 0, 1, -0.5, kappa, sigma, alpha, omega, phi, mb, 0, 0.5, r, cost, beta, h)
+plot_and_save.sim_result_with_wave("FigXc", t, tw, wmin, wmax, ub, 0, 1.3, 0, 0.75, 0, kappa, sigma, alpha, omega, phi, mb, 0, 0.5, r, cost, beta, h)
+plot_and_save.sim_result_with_wave("FigXe", t, tw, wmin, wmax, ub, 0, 1.3, 0, 0.5, 0.5, kappa, sigma, alpha, omega, phi, mb, 0, 0.5, r, cost, beta, h)
+plot_and_save.sim_result_with_wave("FigXb", t, tw, wmin, wmax, ub, 0, 2, 0, 1, -0.5, kappa, sigma, alpha, omega, phi, mb, 0, 2, r, cost, beta, h)
+plot_and_save.sim_result_with_wave("FigXd", t, tw, wmin, wmax, ub, 0, 2, 0, 0.75, 0, kappa, sigma, alpha, omega, phi, mb, 0, 2, r, cost, beta, h)
+plot_and_save.sim_result_with_wave("FigXf", t, tw, wmin, wmax, ub, 0, 2, 0, 0.5, 0.5, kappa, sigma, alpha, omega, phi, mb, 0, 2, r, cost, beta, h)
 
 
 # FIGURE 4 basic zoneplot  ========================
