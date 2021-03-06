@@ -204,7 +204,7 @@ plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk,
 	
 	png(paste(FigName,"_upper.png",sep=""),height=1000,width=1200)
 	par(cex=7.0,mex=0.5,bg=rgb(0,0,0,0))
-	plot(rep(dt,times=3),c(pred_pfo,prey_epfo,prey_pfo),type="n",col="red",xaxt="n",xlim=c(0,24),ylim=ylim,lwd=3,xlab="",ylab="")
+	plot(rep(dt,times=3),c(pred_pfo,prey_epfo,prey_pfo),type="n",col="red",xaxt="n",xaxs="i",xlim=c(0,24),ylim=ylim,lwd=3,xlab="",ylab="")
 	if(light_mode){
 		polygon(c(-10,-10,100,100),c(-100,100,100,-100),col="white",border=rgb(0,0,0,0))
 		polygon(c(-10,-10,4,4),c(-100,100,100,-100),col="grey80",border=rgb(0,0,0,0))
@@ -233,7 +233,7 @@ plot_and_save.sim_result_with_wave = function(nameIn, t, tw, wmin, wmax, ub, uk,
 	
 	plot(0,0,type="n",
 		  xlab="",ylab="",
-		  xlim=c(0,tnum),ylim=c(-0.02,1.02),xaxt="n")
+		  xlim=c(0,tnum),ylim=c(-0.02,1.02),xaxt="n",xaxs="i")
 	if(light_mode){
 		polygon(c(-10,-10,100,100),c(-100,100,100,-100),col="white",border=rgb(0,0,0,0))
 		polygon(c(-10,-10,4,4),c(-100,100,100,-100),col="grey80",border=rgb(0,0,0,0))

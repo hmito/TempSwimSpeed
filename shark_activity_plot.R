@@ -7,6 +7,7 @@ source("shark_activity_plotfunctions.R")
 pi = acos(-1)
 tnum = 24 # time of day
 t = 1:tnum-0.5
+t_w = 15
 
 # temperature of the water
 tw=15
@@ -21,7 +22,7 @@ vk = 0.2 #influence of bodytemp
 
 #light effects
 mu = 1.0			#predation rate at midnight
-rho = -0.5		#effect of light on predation rate at noon
+rho = 0.0		#effect of light on predation rate at noon
 kappa = 0.5		#determines the sensitivity for small light
 sigma = 0.3		#duration of twilight
 
@@ -43,11 +44,11 @@ plot_legend = FALSE#TRUE
 
 
 # Figure 1 default parameter image =======================
-png("Fig1a.png",width=1200,height = 1200)
+png("fig1a.png",width=1200,height = 1200)
 # assumption figure
 par(cex=4.0,bg=rgb(0,0,0,0))
 #plot(t,watertemp,col="blue",pch=15, xlab="time (t)",ylab="temperature")
-plot(t,watertemp,col="blue",pch=15,type ="n", xlab="",ylab="",xaxt = "n")
+plot(t,watertemp,col="blue",pch=15,type ="n", xlab="",ylab="",xaxt = "n",xaxs="i")
 if(light_mode){
 	polygon(c(-10,-10,100,100),c(-100,100,100,-100),col="white",border=rgb(0,0,0,0))
 	polygon(c(-10,-10,4,4),c(-100,100,100,-100),col="grey75",border=rgb(0,0,0,0))
@@ -73,11 +74,11 @@ sharktemp=calc.sharktemp(t,t_w,wmin,wmax,r)
 U = u0 + uk*(watertemp-(wmax+wmin)/2)
 V = v0 + vk*(sharktemp-(wmax+wmin)/2)
 
-png("Fig1b.png",width=1200,height = 1200)
+png("fig1b.png",width=1200,height = 1200)
 # assumption figure
 par(cex=4.0,bg=rgb(0,0,0,0))
 #plot(t,V,type="n",xlim=c(0,tnum),ylim=c(min(V-U),max(c(V,U))),xlab="time (t)",ylab="burst speed")
-plot(t,V,type="n",xlim=c(0,tnum),ylim=c(min(V-U),max(c(V,U))),xlab="",ylab="",xaxt="n")
+plot(t,V,type="n",xlim=c(0,tnum),ylim=c(min(V-U),max(c(V,U))),xlab="",ylab="",xaxt="n",xaxs="i")
 if(light_mode){
 	polygon(c(-10,-10,100,100),c(-100,100,100,-100),col="white",border=rgb(0,0,0,0))
 	polygon(c(-10,-10,4,4),c(-100,100,100,-100),col="grey75",border=rgb(0,0,0,0))
@@ -97,10 +98,10 @@ lines(t,V-U,col="purple",lty=1)
 axis(1,at=c(0,4,8,12,16,20,24))
 dev.off()
 
-png("Fig1c.png",width=1200,height = 1200)
+png("fig1c.png",width=1200,height = 1200)
 # assumption figure
 par(cex=4.0,bg=rgb(0,0,0,0))
-plot(t,calc.light_effect(t,1e-10, lk, ld),type="n",xlim=c(0,tnum),xlab="",ylab="",xaxt="n",ylim=c(0,1))
+plot(t,calc.light_effect(t,mu,-0.9, kappa,sigma),type="n",xlim=c(0,tnum),xlab="",ylab="",xaxt="n",xaxs="i",ylim=c(0,1))
 if(light_mode){
 	polygon(c(-10,-10,100,100),c(-100,100,100,-100),col="white",border=rgb(0,0,0,0))
 	polygon(c(-10,-10,4,4),c(-100,100,100,-100),col="grey75",border=rgb(0,0,0,0))
@@ -123,73 +124,76 @@ axis(1,at=c(0,4,8,12,16,20,24))
 dev.off()
 
 # Fig3 ========================
-plot_and_save.sim_result_with_wave("Fig3c", t, tw, wmin, wmax, ub, uk, 1.5, vk, mu, rho, kappa, sigma, alpha, omega, phi, mb, mx, 0.0, r, cost, beta, h)
-plot_and_save.sim_result_with_wave("Fig3d", t, tw, wmin, wmax, ub, uk, 2.0, vk, mu, rho, kappa, sigma, alpha, omega, phi, mb, mx, 1.5, r, cost, beta, h)
-plot_and_save.sim_result_with_wave("Fig3b", t, tw, wmin, wmax, ub, uk, 1.5, vk, mu, rho, kappa, sigma, alpha, omega, phi, mb, mx, 0.5, r, cost, beta, h)
-plot_and_save.sim_result_with_wave("Fig3a", t, tw, wmin, wmax, ub, uk, 1.5, vk, mu, rho, kappa, sigma, alpha, omega, phi, mb, mx, 0.2, r, cost, beta, h)
+plot.vb.my.figures("fig3a", t, tw, wmin, wmax, ub, 0, vb, 0, 
+						 mu,rho,kappa,sigma, alpha, 0.0, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
+plot.vb.my.figures("fig3d", t, tw, wmin, wmax, ub, uk, vb, vk, 
+						 mu,rho,kappa,sigma, alpha, 0.0, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
+plot.vb.my.figures("fig3h", t, tw, wmin, wmax, ub, uk, vb, vk, 
+						 mu,rho,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
 
 
-plot.vb.my.figures("fig3xa", t, tw, 27.5, 27.5, ub, uk, vb, vk, 
-						 1.0,0.0,kappa,sigma, alpha, 0.0, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
-plot.vb.my.figures("fig3xb", t, tw, wmin, wmax, ub, uk, vb, vk, 
-						 1.0,0.0,kappa,sigma, alpha, 0.0, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
-plot.vb.my.figures("fig3xc", t, tw, wmin, wmax, ub, uk, vb, vk, 
-						 1.0,0.0,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
+plot_and_save.sim_result_with_wave("fig3b", t, tw, wmin, wmax, ub, 0, 1.4, 0, 
+											  mu,rho, kappa, sigma, alpha, 0, phi, mb, mx, 1.0, r, cost, beta, h)
 
+plot_and_save.sim_result_with_wave("fig3c", t, tw, wmin, wmax, ub, 0, 1.0, 0, 
+											  mu,rho, kappa, sigma, alpha, 0, phi, mb, mx, 1.0, r, cost, beta, h)
 
-plot_and_save.sim_result_with_wave("Fig3ya", t, tw, 27.5, 27.5, ub, uk, 1.4, vk, 
-											  1.0, 0.0, kappa, sigma, alpha, 0, phi, mb, mx, 1.0, r, predcost, beta, h)
+plot_and_save.sim_result_with_wave("fig3e", t, tw, wmin, wmax, ub, uk, 1.2, vk, 
+											  mu,rho, kappa, sigma, alpha, 0, phi, mb, mx, 0.0, r, cost, beta, h)
 
-plot_and_save.sim_result_with_wave("Fig3yb", t, tw, 27.5, 27.5, ub, uk, 1.0, vk, 
-											  1.0, 0.0, kappa, sigma, alpha, 0, phi, mb, mx, 1.0, r, predcost, beta, h)
+plot_and_save.sim_result_with_wave("fig3f", t, tw, wmin, wmax, ub, uk, 1.2, vk, 
+											  mu,rho, kappa, sigma, alpha, 0, phi, mb, mx, 2.0, r, cost, beta, h)
 
-plot_and_save.sim_result_with_wave("Fig3yc", t, tw, wmin, wmax, ub, uk, 1.2, vk, 
-											  1.0, 0.0, kappa, sigma, alpha, 0, phi, mb, mx, 0.0, r, cost, beta, h)
+plot_and_save.sim_result_with_wave("fig3g", t, tw, wmin, wmax, ub, uk, 1.65, vk, 
+											  mu,rho, kappa, sigma, alpha, 0, phi, mb, mx, 2.0, r, cost, beta, h)
 
-plot_and_save.sim_result_with_wave("Fig3yd", t, tw, wmin, wmax, ub, uk, 1.2, vk, 
-											  1.0, 0.0, kappa, sigma, alpha, 0, phi, mb, mx, 2.0, r, cost, beta, h)
+plot_and_save.sim_result_with_wave("fig3i", t, tw, wmin, wmax, ub, uk, 1.2, vk, 
+											  mu,rho, kappa, sigma, alpha, omega, phi, mb, mx, 0.5, r, cost, beta, h)
 
-plot_and_save.sim_result_with_wave("Fig3ye", t, tw, wmin, wmax, ub, uk, 1.65, vk, 
-											  1.0, 0.0, kappa, sigma, alpha, 0, phi, mb, mx, 2.0, r, cost, beta, h)
+plot_and_save.sim_result_with_wave("fig3j", t, tw, wmin, wmax, ub, uk, 1.6, vk, 
+											  mu,rho, kappa, sigma, alpha, omega, phi, mb, mx, 1.0, r, cost, beta, h)
 
-plot_and_save.sim_result_with_wave("Fig3yf", t, tw, wmin, wmax, ub, uk, 1.2, vk, 
-											  1.0, 0.0, kappa, sigma, alpha, omega, phi, mb, mx, 0.5, r, cost, beta, h)
+plot_and_save.sim_result_with_wave("fig3k", t, tw, wmin, wmax, ub, uk, 1.4, vk, 
+											  mu,rho, kappa, sigma, alpha, omega, phi, mb, mx, 0.3, r, cost, beta, h)
 
-plot_and_save.sim_result_with_wave("Fig3yg", t, tw, wmin, wmax, ub, uk, 1.6, vk, 
-											  1.0, 0.0, kappa, sigma, alpha, omega, phi, mb, mx, 1.0, r, cost, beta, h)
-
-plot_and_save.sim_result_with_wave("Fig3yh", t, tw, wmin, wmax, ub, uk, 1.4, vk, 
-											  1.0, 0.0, kappa, sigma, alpha, omega, phi, mb, mx, 0.3, r, cost, beta, h)
-
-plot_and_save.sim_result_with_wave("Fig3yi", t, tw, wmin, wmax, ub, uk, 1.45, vk, 
-											  1.0, 0.0, kappa, sigma, alpha, omega, phi, mb, mx, 0.50, r, predcost, beta, h)
+plot_and_save.sim_result_with_wave("fig3l", t, tw, wmin, wmax, ub, uk, 1.45, vk, 
+											  mu,rho, kappa, sigma, alpha, omega, phi, mb, mx, 0.50, r, cost, beta, h)
 
 # FIGURE 4 basic zoneplot  ========================
-plot_legend = FALSE#TRUE
-plot.vb.my.figures("fig4", t, tw, wmin, wmax, ub, uk, vb, vk, 
+plot.vb.my.figures("fig4a", t, tw, wmin, wmax, ub, uk, vb, vk, 
+						 mu,rho,kappa,sigma, alpha, omega, phi, mb, mx, my, r=0.3, cost, beta, h,plot_legend = plot_legend)
+
+plot.vb.my.figures("fig4b", t, tw, wmin, wmax, ub, uk, vb, vk, 
+						 mu,rho,kappa,sigma, alpha, omega, phi, mb, mx, my, r=4.0, cost, beta, h,plot_legend = plot_legend)
+
+plot.vb.my.figures("fig4c", t, tw, wmin, wmax, ub, uk=0.1, vb, vk=0.3, 
 						 mu,rho,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
 
-
-# FIGURE 5 phi-r plot  ========================
-plot.r.phi.figures("fig5a",t, tw, wmin, wmax, ub, uk, vb, vk, 
+plot.vb.my.figures("fig4d", t, tw, wmin, wmax, ub, uk=0.3, vb, vk=0.1, 
 						 mu,rho,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
-plot.r.phi.figures("fig5b",t, tw, wmin, wmax, ub, uk, vb, vk, 
-						 mu,rho,kappa,sigma,alpha, omega, phi, mb, 0.0, my, r, cost, beta, h,plot_legend = plot_legend)
-plot.r.phi.figures("fig5c",t, tw, wmin, wmax, ub, uk, vb, vk, 
-						 mu,rho,kappa,sigma, alpha, omega, phi, mb, mx, 0.5, r, cost, beta, h,plot_legend = plot_legend)
-plot.r.phi.figures("fig5d",t, tw, wmin, wmax, ub, uk, vb, vk, 
-						 mu,rho,kappa,sigma, alpha, omega, phi, mb, mx, 2.0, r, cost, beta, h,plot_legend = plot_legend)
-plot.r.phi.figures("fig5e",t, tw, wmin, wmax, ub, uk, vb, vk, 
-						 mu,-0.9,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
-plot.r.phi.figures("fig5f",t, tw, wmin, wmax, ub, uk, vb, vk, 
-						 mu, 0.0,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
-plot.r.phi.figures("fig5g",t, tw, wmin, wmax, ub, 0.4, vb, vk, 
-						 mu, rho,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
-plot.r.phi.figures("fig5h",t, tw, wmin, wmax, ub, uk, vb, vk, 
-						 0.1, 0.9,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
-plot.r.phi.figures("fig5h",t, tw, wmin, wmax, ub, uk, vb, vk, 
-						 0.5, 0.5,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
 
+plot.vb.my.figures("fig4e", t, tw, wmin, wmax, ub, uk, vb, vk, 
+						 mu,rho,kappa,sigma, alpha, omega, phi=0.0, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
+
+plot.vb.my.figures("fig4f", t, tw, wmin, wmax, ub, uk, vb, vk, 
+						 mu,rho,kappa,sigma, alpha, omega, phi=0.3, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
+
+plot.vb.my.figures("fig4g", t, tw, wmin, wmax, ub, uk, vb, vk, 
+						 mu,rho,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h=0.25,plot_legend = plot_legend)
+
+plot.vb.my.figures("fig4h", t, tw, wmin, wmax, ub, uk, vb, vk, 
+						 mu,rho,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h=4,plot_legend = plot_legend)
+
+
+# FIGURE 5 vb-my plot  ========================
+plot.vb.my.figures("fig5a", t, tw, wmin, wmax, ub, uk, vb, vk, 
+						 0.5,0.5,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
+plot.vb.my.figures("fig5b", t, tw, wmin, wmax, ub, uk, vb, vk, 
+						 0.1,0.9,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
+plot.vb.my.figures("fig5c", t, tw, wmin, wmax, ub, uk, vb, vk, 
+						 1.0,-0.5,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
+plot.vb.my.figures("fig5d", t, tw, wmin, wmax, ub, uk, vb, vk, 
+						 1.0,-0.9,kappa,sigma, alpha, omega, phi, mb, mx, my, r, cost, beta, h,plot_legend = plot_legend)
 
 # FIGURE A2 simple models  ========================
 rho.seq = c(-0.9,-0.5,0.0,+0.5,+0.9)
