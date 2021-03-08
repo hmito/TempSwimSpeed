@@ -191,3 +191,18 @@ points(t,V-U,col="purple",pch=17)
 lines(t,V-U,col="purple",lty=1,lwd=lwd)
 axis(1,at=c(0,4,8,12,16,20,24))
 dev.off()
+
+
+plot_and_save.sim_result_with_wave("fig3old_a", t, tw, wmin, wmax, ub, uk, 1.5, vk, 
+											  mu,-0.5, kappa, sigma, alpha, omega, phi, mb, mx, 0.2, r, cost, beta, h)
+
+plot_and_save.sim_result_with_wave("fig3old_b", t, tw, wmin, wmax, ub, uk, 1.5, vk, 
+											  mu,-0.5, kappa, sigma, alpha, omega, phi, mb, mx, 0.5, r, cost, beta, h)
+
+plot_and_save.sim_result_with_wave("fig3old_c", t, tw, wmin, wmax, ub, uk, 1.5, vk, 
+											  mu,-0.5, kappa, sigma, alpha, omega, phi, mb, mx, 0.0, r, cost, beta, h)
+
+plot_and_save.sim_result_with_wave("fig3old_d", t, tw, wmin, wmax, ub, uk, 2.0, vk, 
+											  mu,-0.5, kappa, sigma, alpha, omega, phi, mb, mx, 1.5, r, cost, beta, h)
+
+
