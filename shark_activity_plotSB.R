@@ -193,6 +193,33 @@ axis(1,at=c(0,4,8,12,16,20,24))
 dev.off()
 
 
+
+png("fig1c50.png",width=1200,height = 1200)
+# assumption figure
+par(cex=4.0,bg=rgb(0,0,0,0))
+plot(t,calc.light_effect(t,mu,-0.9, kappa,sigma),type="n",xlim=c(0,tnum),xlab="",ylab="",xaxt="n",xaxs="i",ylim=c(0,1))
+if(light_mode){
+	polygon(c(-10,-10,100,100),c(-100,100,100,-100),col="white",border=rgb(0,0,0,0))
+	polygon(c(-10,-10,4,4),c(-100,100,100,-100),col="grey75",border=rgb(0,0,0,0))
+	polygon(c(4,4,8,8),c(-100,100,100,-100),col="grey90",border=rgb(0,0,0,0))
+	polygon(c(16,16,20,20),c(-100,100,100,-100),col="grey90",border=rgb(0,0,0,0))
+	polygon(c(20,20,100,100),c(-100,100,100,-100),col="grey75",border=rgb(0,0,0,0))
+}
+plt = hmRLib::cud.colorset()
+#lines(t,calc.light_effect(t,mu,-0.9, kappa,sigma),col=plt$red,lty=1,lwd=2)
+#points(t,calc.light_effect(t,mu,-0.9, kappa,sigma),col=plt$red,pch=15)
+lines(t,calc.light_effect(t,mu,-0.5, kappa,sigma),col="red",lty=1,lwd=lwd)
+points(t,calc.light_effect(t,mu,-0.5, kappa,sigma),col="red",pch=16)
+#lines(t,calc.light_effect(t,0.1,0.9, kappa,sigma),col=plt$blue,lty=1,lwd=2)
+#points(t,calc.light_effect(t,0.1,0.9, kappa,sigma),col=plt$blue,pch=17)
+lines(t,calc.light_effect(t,0.5,0.5, kappa,sigma),col="blue",lty=1,lwd=lwd)
+points(t,calc.light_effect(t,0.5,0.5, kappa,sigma),col="blue",pch=18)
+#lines(t,calc.light_effect(t,mu,0, kappa,sigma),col="black",lty=1,lwd=2)
+#points(t,calc.light_effect(t,mu,0, kappa,sigma),col="black",pch=4)
+axis(1,at=c(0,4,8,12,16,20,24))
+dev.off()
+
+
 plot_and_save.sim_result_with_wave("fig3old_a", t, tw, wmin, wmax, ub, uk, 1.5, vk, 
 											  mu,-0.5, kappa, sigma, alpha, omega, phi, mb, mx, 0.2, r, cost, beta, h)
 
